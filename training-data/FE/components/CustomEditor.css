@@ -1,0 +1,321 @@
+/* src/components/CustomEditor.css */
+
+.tiptap-wrapper {
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.tiptap-wrapper .ProseMirror {
+    min-height: 250px;
+    max-height: 500px; /* Giới hạn chiều cao tối đa */
+    overflow-y: auto;  /* Thêm thanh cuộn dọc khi cần */
+    padding: 1rem;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    /* --- BẮT ĐẦU SỬA LỖI --- */
+    /* Buộc các từ dài hoặc chuỗi không có khoảng trắng phải xuống dòng */
+    overflow-wrap: break-word;
+    word-wrap: break-word; /* Tương thích với trình duyệt cũ */
+    word-break: break-word;
+    /* --- KẾT THÚC SỬA LỖI --- */
+}
+
+/* Đảm bảo các khối code cũng tự động xuống dòng */
+.tiptap-wrapper .ProseMirror pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+
+.tiptap-wrapper .ProseMirror:focus {
+    outline: none;
+}
+
+/* === BẮT ĐẦU CSS CHUNG CHO EDITOR VÀ WEBSITE HIỂN THỊ === */
+/* Áp dụng cho cả .ProseMirror và .content-display */
+.ProseMirror img,
+.content-display img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  /* Mặc định cho căn giữa: display: block và margin: auto */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid #68CEF8;
+}
+
+/* Khi căn trái, ghi đè margin auto và float */
+.ProseMirror img[data-float="left"],
+.content-display img[data-float="left"] {
+  float: left;
+  margin-left: 0;
+  margin-right: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Khi căn phải, ghi đè margin auto và float */
+.ProseMirror img[data-float="right"],
+.content-display img[data-float="right"] {
+  float: right;
+  margin-right: 0;
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+/* === KẾT THÚC CSS CHUNG === */
+
+
+.tiptap-menubar {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-bottom: 1px solid #dcdcdc;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.tiptap-menubar button {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #495057;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.tiptap-menubar button:hover {
+    background-color: #e9ecef;
+}
+
+.tiptap-menubar button.is-active {
+    background-color: #e0e7ff;
+    color: #3B82F6;
+}
+
+.tiptap-menubar .divider {
+    width: 1px;
+    height: 20px;
+    background-color: #dcdcdc;
+    margin: 0 0.5rem;
+}
+
+.color-picker-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+.color-picker-wrapper:hover {
+    background-color: #e9ecef;
+}
+.color-picker-wrapper input[type="color"] {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: none;
+    padding: 0;
+    margin-left: 0.25rem;
+    cursor: pointer;
+}
+
+.image-action-menu {
+    position: absolute;
+    z-index: 100;
+    transform: translateX(-50%);
+    display: flex;
+    background-color: #111827;
+    padding: 0.3rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.image-action-menu button {
+    color: white;
+}
+
+.image-action-menu button:hover {
+    background-color: #374151;
+}
+
+.image-action-menu button.is-active {
+    background-color: #4f46e5;
+}
+
+.image-action-menu .divider {
+    background-color: #4b5563;
+    width: 1px;
+    height: 20px;
+    margin: 0 0.3rem;
+}
+
+.image-width-slider {
+    -webkit-appearance: none;
+    width: 120px;
+    height: 6px;
+    background: #4b5563;
+    border-radius: 5px;
+    outline: none;
+    margin: 0 0.5rem;
+}
+
+.image-width-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #a5b4fc;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.image-width-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #a5b4fc;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+}
+
+.tiptap-html-editor {
+    width: 100%;
+    min-height: 250px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    color: #333;
+    background-color: #f8f9fa;
+    border: none;
+    padding: 1rem;
+    resize: vertical;
+}
+
+.tiptap-html-editor:focus {
+    outline: none;
+}
+
+/* FE/src/tiptap-content.css */
+
+/* Áp dụng cho cả hai môi trường: .ProseMirror (trong editor) và .tiptap-content (ngoài FE) */
+.ProseMirror,
+.tiptap-content {
+    line-height: 1.6;
+    font-size: 16px;
+    color: #333;
+    outline: none;
+}
+
+.ProseMirror > *,
+.tiptap-content > * {
+    margin-bottom: 1.25em;
+}
+
+.ProseMirror h1, .tiptap-content h1,
+.ProseMirror h2, .tiptap-content h2,
+.ProseMirror h3, .tiptap-content h3,
+.ProseMirror h4, .tiptap-content h4 {
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 1.5em;
+}
+
+.ProseMirror h1, .tiptap-content h1 { font-size: 2em; }
+.ProseMirror h2, .tiptap-content h2 { font-size: 1.8em; }
+.ProseMirror h3, .tiptap-content h3 { font-size: 1.5em; }
+.ProseMirror h4, .tiptap-content h4 { font-size: 1.2em; }
+
+.ProseMirror a, .tiptap-content a {
+    color: hsl(205, 90%, 48%);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.ProseMirror ul, .tiptap-content ul,
+.ProseMirror ol, .tiptap-content ol {
+    padding-left: 2em;
+}
+
+.ProseMirror blockquote, .tiptap-content blockquote {
+    padding-left: 1.5em;
+    font-style: italic;
+    border-left: 5px solid hsl(0, 0%, 80%);
+}
+
+.ProseMirror hr, .tiptap-content hr {
+    border: 0;
+    height: 1px;
+    background-color: hsl(0, 0%, 87%);
+    margin: 2em 0;
+}
+
+.ProseMirror code, .tiptap-content code {
+  background-color: hsla(0, 0%, 78%, 0.3);
+  padding: .15em;
+  border-radius: 2px;
+}
+
+.ProseMirror pre, .tiptap-content pre {
+  background: #0D0D0D;
+  color: #FFF;
+  font-family: 'JetBrainsMono', monospace;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* === XỬ LÝ HIỂN THỊ HÌNH ẢNH (QUAN TRỌNG) === */
+
+/* 1. Style chung cho tất cả hình ảnh */
+.ProseMirror img,
+.tiptap-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* 2. Căn giữa (mặc định cho ảnh không có data-float) */
+.ProseMirror img:not([data-float]),
+.tiptap-content img:not([data-float]) {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    clear: both;
+}
+
+/* 3. Căn trái (float left) */
+.ProseMirror img[data-float="left"],
+.tiptap-content img[data-float="left"] {
+  float: left;
+  margin-right: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* 4. Căn phải (float right) */
+.ProseMirror img[data-float="right"],
+.tiptap-content img[data-float="right"] {
+  float: right;
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* 5. Clearfix cho container để xử lý float */
+.ProseMirror::after,
+.tiptap-content::after {
+    content: "";
+    display: table;
+    clear: both;
+}

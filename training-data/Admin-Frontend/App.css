@@ -1,0 +1,176 @@
+/* src/App.css */
+
+/* ----- GOOGLE FONTS & BIẾN CSS ----- */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap');
+
+:root {
+  --font-primary: "Roboto Flex", sans-serif;
+  --color-primary: #27548A;
+  --color-secondary: #CDD7E5;
+  --color-text-dark: #333;
+  --color-text-light: #666;
+  --color-background: #FFFFFF;
+  --color-background-light: #F8F9FA;
+  --color-border: #E0E0E0;
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --border-radius: 12px;
+  --text-color: #1f2937;
+  --background-color: #ffffff;
+  --card-background: #ffffff;
+  --header-background: #ffffff;
+}
+
+[data-theme='dark'] {
+  --color-primary: #5a9ae8;
+  --color-secondary: #3a4b63;
+  --color-text-dark: #f0f0f0;
+  --color-text-light: #a0a0a0;
+  --color-background: #1a1a1a;
+  --color-background-light: #2c2c2c;
+  --color-border: #444444;
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --text-color: #e5e7eb;
+  --background-color: #111827;
+  --card-background: #1f2937;
+  --header-background: #1f2937c7;
+}
+
+
+/* ----- STYLES CƠ BẢN & RESET ----- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-primary);
+  color: var(--color-text-dark);
+  background-color: var(--color-background);
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Đảm bảo không có phần tử cha nào chặn position:sticky.
+  Đây là phần sửa lỗi quan trọng nhất.
+*/
+body, html, #root {
+  overflow: visible !important;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--color-primary);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+ul {
+  list-style-position: inside;
+  padding-left: 20px;
+}
+
+/* ----- PARTICLE BACKGROUND STYLE ----- */
+#particle-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1; /* Đảm bảo canvas nằm sau mọi nội dung khác */
+}
+
+
+/* ----- CẤU TRÚC LAYOUT CHUNG ----- */
+.page-wrapper {
+  margin: 0 auto;
+  background-color: var(--background-color);
+  /* overflow: visible; đã được xử lý ở trên, không cần lặp lại */
+}
+
+.container {
+  width: 100%;
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
+.section-container {
+  padding: 80px 0;
+}
+
+.section-container.section-light-bg {
+  background-color: var(--color-background-light);
+}
+
+.section-container:last-of-type {
+  padding-bottom: 80px;
+}
+
+.grid-container {
+  width: 100%;
+  display: grid;
+  gap: 30px;
+}
+
+/* ----- CÁC COMPONENT TÁI SỬ DỤNG (NÚT BẤM) ----- */
+.btn {
+  border: 1px solid var(--color-text-dark);
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background-color: transparent;
+  color: var(--color-text-dark);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-block; /* Đảm bảo nút bấm hoạt động đúng */
+}
+
+.btn:hover {
+  background-color: var(--color-text-dark);
+  color: var(--color-background);
+  transform: translateY(-2px);
+}
+
+.centered-button {
+  display: block;
+  margin: 40px auto 0 auto;
+  width: fit-content; /* Giúp nút bấm căn giữa chuẩn hơn */
+}
+
+
+/* ----- MEDIA QUERIES TOÀN CỤC ----- */
+@media (max-width: 1200px) {
+    .container {
+      padding: 0 25px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+      padding: 0 20px;
+    }
+    .section-container {
+      padding: 40px 0;
+    }
+}

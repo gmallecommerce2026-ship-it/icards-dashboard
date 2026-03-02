@@ -1,0 +1,19 @@
+# Hướng dẫn cho tất cả các trình thu thập dữ liệu web (ví dụ: Googlebot)
+User-agent: *
+
+# Cho phép thu thập dữ liệu từ tất cả các trang
+Allow: /
+
+# Các trang không cho phép thu thập dữ liệu
+# (Thường là các trang quản lý, đăng nhập, hoặc không có nội dung công khai)
+Disallow: /account-settings
+Disallow: /signin
+Disallow: /signup
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /invitation-management
+Disallow: /canvas/
+
+# Vị trí của tệp sitemap
+# Thay 'https://your-domain.com' bằng tên miền thực tế của bạn
+Sitemap: https://your-domain.com/sitemap.xml
