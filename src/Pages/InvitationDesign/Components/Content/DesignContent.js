@@ -3280,8 +3280,8 @@ const BlankCanvasCreator = ({ onCreate }) => {
         }
         
         // Chỉ ép (clamp) kích thước khi người dùng đã gõ xong và click ra ngoài (Blur)
-        if (numValue < 3) numValue = 3;
-        if (numValue > 30) numValue = 30;
+        if (numValue < 0) numValue = 0;
+        if (numValue > 200) numValue = 200;
         
         setter(numValue);
     };
