@@ -5204,10 +5204,10 @@ const WeddingInvitationEditor = () => {
                 );
             }
             const currentBlockTypes = new Set(eventBlocks.map(b => b.type));
-            const availableToAdd = Object.entries(AVAILABLE_BLOCKS).filter(([type, config]) => !config.required && !currentBlockTypes.has(type));
+            const allToggleableBlocks = Object.entries(AVAILABLE_BLOCKS).filter(([type, config]) => !config.required);
+
             return (
                 <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {/* --- PHẦN ĐƯỢC THÊM VÀO --- */}
                     <Box>
                         <Typography variant="h6" gutterBottom sx={{ mb: 1.5 }}>{SETTINGS_META['invitationType'].label}</Typography>
                         <SettingsPropertyEditor
@@ -5220,7 +5220,6 @@ const WeddingInvitationEditor = () => {
                         />
                     </Box>
                     <Divider />
-                     {/* --- KẾT THÚC PHẦN THÊM --- */}
 
                     <Box>
                         <Typography variant="h6" gutterBottom>Quản lý Khối</Typography>
@@ -5228,45 +5227,78 @@ const WeddingInvitationEditor = () => {
                             Thêm hoặc xóa các khối nội dung cho trang sự kiện của bạn.
                         </Typography>
                         <List>
-                            {availableToAdd.map(([type, config]) => (
-                                <ListItemButton 
-                                    key={type} 
-                                    onClick={() => handleAddBlock(type)}
-                                    sx={{ 
-                                        alignItems: 'flex-start', // Căn trên cùng để icon không bị lệch khi description dài
-                                        py: 1.5,
-                                        borderRadius: 1, // Bo góc nhẹ cho item
-                                        mb: 0.5,
-                                        '&:hover': {
-                                            backgroundColor: 'action.hover',
-                                        }
-                                    }}
-                                >
-                                    <ListItemIcon sx={{ mt: 0.5, minWidth: 40 }}>
-                                        {config.icon}
-                                    </ListItemIcon>
-                                    <ListItemText 
-                                        primary={config.label} 
-                                        secondary={config.description} // Thêm phần mô tả ở đây
-                                        primaryTypographyProps={{ 
-                                            variant: 'subtitle2', 
-                                            fontWeight: 600,
-                                            color: 'text.primary'
+                            {allToggleableBlocks.map(([type, config]) => {
+                                // Kiểm tra xem khối này đã được thêm vào canvas/settings chưa
+                                const isSelected = currentBlockTypes.has(type);
+
+                                return (
+                                    <ListItemButton 
+                                        key={type} 
+                                        onClick={() => {
+                                            if (isSelected) {
+                                                // Nếu ĐÃ CHỌN -> Tìm ID của khối đó và Xóa
+                                                const blockToRemove = eventBlocks.find(b => b.type === type);
+                                                if (blockToRemove) handleRemoveBlock(blockToRemove.id);
+                                            } else {
+                                                // Nếu CHƯA CHỌN -> Thêm mới
+                                                handleAddBlock(type);
+                                            }
                                         }}
-                                        secondaryTypographyProps={{ 
-                                            variant: 'caption', 
-                                            color: 'text.secondary',
-                                            sx: { 
-                                                display: 'block', 
-                                                mt: 0.5, 
-                                                lineHeight: 1.4 
-                                            } 
+                                        sx={{ 
+                                            alignItems: 'flex-start', 
+                                            py: 1.5,
+                                            pr: 5, // Thêm padding-right để text không bị đè bởi checkbox
+                                            borderRadius: 1.5, // Bo góc mượt hơn
+                                            mb: 1,
+                                            position: 'relative', // Quan trọng: Để định vị absolute cho Checkbox
+                                            border: '1px solid',
+                                            borderColor: isSelected ? 'primary.main' : 'divider', // Đổi màu viền nếu được chọn
+                                            backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : 'transparent', // Nền xanh nhạt nếu được chọn
+                                            transition: 'all 0.2s ease',
+                                            '&:hover': {
+                                                backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'action.hover',
+                                            }
                                         }}
-                                    />
-                                </ListItemButton>
-                            ))}
+                                    >
+                                        <ListItemIcon sx={{ mt: 0.5, minWidth: 40, color: isSelected ? 'primary.main' : 'inherit' }}>
+                                            {config.icon}
+                                        </ListItemIcon>
+                                        <ListItemText 
+                                            primary={config.label} 
+                                            secondary={config.description}
+                                            primaryTypographyProps={{ 
+                                                variant: 'subtitle2', 
+                                                fontWeight: 600,
+                                                color: isSelected ? 'primary.main' : 'text.primary' // Đổi màu chữ nếu chọn
+                                            }}
+                                            secondaryTypographyProps={{ 
+                                                variant: 'caption', 
+                                                color: 'text.secondary',
+                                                sx: { display: 'block', mt: 0.5, lineHeight: 1.4 } 
+                                            }}
+                                        />
+                                        
+                                        {/* Checkbox ở góc trên bên phải */}
+                                        <Checkbox
+                                            checked={isSelected}
+                                            size="small"
+                                            disableRipple
+                                            sx={{
+                                                position: 'absolute',
+                                                top: 8,
+                                                right: 8,
+                                                p: 0.5,
+                                                '&.Mui-checked': {
+                                                    color: 'primary.main',
+                                                }
+                                            }}
+                                            // Không cần onchange vì sự kiện click đã được bắt bởi ListItemButton bọc ngoài
+                                        />
+                                    </ListItemButton>
+                                );
+                            })}
                         </List>
-                        {availableToAdd.length === 0 && <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block' }}>Tất cả các khối đã được thêm.</Typography>}
+                        {/* Đã xóa dòng "Tất cả các khối đã được thêm" vì bây giờ danh sách luôn hiển thị */}
                     </Box>
                 </Box>
             );
