@@ -3268,7 +3268,7 @@ const BlankCanvasCreator = ({ onCreate }) => {
 
     const handleCustomDimBlur = (setter, value) => () => {
         if (value === '') {
-            setter(10); // Đặt về giá trị mặc định nếu người dùng xóa trắng rồi click ra ngoài
+            setter(10); 
             return;
         }
         

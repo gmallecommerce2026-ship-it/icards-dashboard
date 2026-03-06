@@ -13,7 +13,7 @@ const FONT_CATEGORIES = [
     { id: 'General', label: 'Khác' }
 ];
 // ... (Modal BulkAddFontModal Giữ nguyên code cũ của bạn ở đoạn này) ...
-const BulkAddFontModal = ({ isOpen, onClose, onSave }) => {
+const BulkAddFontModal = ({ isOpen, onClose, onSave, defaultCategory }) => {
     const [files, setFiles] = useState([]);
 
     useEffect(() => {
@@ -28,7 +28,8 @@ const BulkAddFontModal = ({ isOpen, onClose, onSave }) => {
                     id: `${file.name}-${file.lastModified}`,
                     file: file,
                     name: nameWithoutExtension,
-                    category: 'General'
+                    // SỬ DỤNG defaultCategory prop ở đây thay vì 'General'
+                    category: defaultCategory 
                 };
             });
             setFiles(prev => [...prev, ...newFiles]);
@@ -179,6 +180,13 @@ const FontManagementPage = () => {
     const [newFontCategory, setNewFontCategory] = useState('General');
     const [editingCategory, setEditingCategory] = useState('');
 
+    useEffect(() => {
+        if (activeTab !== 'all') {
+            setNewFontCategory(activeTab);
+        } else {
+            setNewFontCategory('General'); // Mặc định về Khác nếu đang ở tab Tất cả
+        }
+    }, [activeTab]);
 
     const handleBulkUpdateCategory = async () => {
         // Lấy danh sách ID các font đang được tick chọn
@@ -408,6 +416,56 @@ const FontManagementPage = () => {
                 <h1 className="admin-header__title">Quản lý Font chữ</h1>
             </header>
 
+
+            <div className="tabs-wrapper" style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                marginBottom: '1.5rem', 
+                borderBottom: '2px solid #f0f0f0', 
+                paddingBottom: '8px',
+                overflowX: 'auto',
+                scrollbarWidth: 'none' // Ẩn scrollbar trên firefox
+            }}>
+                {FONT_CATEGORIES.map(tab => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            style={{
+                                padding: '8px 20px',
+                                fontSize: '14px',
+                                fontWeight: isActive ? '600' : '500',
+                                color: isActive ? '#1890ff' : '#595959',
+                                backgroundColor: isActive ? '#e6f7ff' : 'transparent',
+                                border: isActive ? '1px solid #91d5ff' : '1px solid transparent',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1)',
+                                outline: 'none',
+                                whiteSpace: 'nowrap',
+                                position: 'relative'
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!isActive) {
+                                    e.target.style.color = '#1890ff';
+                                    e.target.style.backgroundColor = '#f5f5f5';
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!isActive) {
+                                    e.target.style.color = '#595959';
+                                    e.target.style.backgroundColor = 'transparent';
+                                }
+                            }}
+                        >
+                            {tab.label}
+                        </button>
+                    )
+                })}
+            </div>
+
+            
             <div className="card settings-card" style={{ marginTop: '1.5rem' }}>
                 <h3 className="card__title">Thêm Font mới</h3>
                 <form onSubmit={handleAddFont} className="form-grid-2-col">
@@ -433,19 +491,6 @@ const FontManagementPage = () => {
                         <button type="button" onClick={() => setIsBulkModalOpen(true)} className="btn btn-secondary" style={{ marginTop: '1rem' }}><UploadCloud size={20} /> Thêm hàng loạt</button>
                     </div>
                 </form>
-            </div>
-
-            <div className="tabs-container" style={{ marginBottom: '1rem', display: 'flex', gap: '8px' }}>
-                {FONT_CATEGORIES.map(tab => (
-                    <button
-                        key={tab.id}
-                        className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-outline-secondary'}`}
-                        onClick={() => setActiveTab(tab.id)}
-                        style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '14px' }}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
             </div>
 
             <div className="page-header-actions">
@@ -543,6 +588,7 @@ const FontManagementPage = () => {
                 isOpen={isBulkModalOpen} 
                 onClose={() => setIsBulkModalOpen(false)} 
                 onSave={handleSaveBulkFonts} 
+                defaultCategory={activeTab === 'all' ? 'General' : activeTab}
             />
 
             {/* Modal Xử Lý Xung Đột (Mới) */}
