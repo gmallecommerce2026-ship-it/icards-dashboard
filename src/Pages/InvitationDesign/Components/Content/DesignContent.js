@@ -3286,7 +3286,18 @@ const BlankCanvasCreator = ({ onCreate }) => {
         setter(numValue);
     };
         
-
+    const handleCustomDimKeyDown = (setter, value) => (event) => {
+        // Nếu người dùng bấm phím Enter
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Ngăn hành vi mặc định (như submit form ngoài ý muốn)
+            
+            // Gọi lại đúng logic kiểm tra của onBlur
+            handleCustomDimBlur(setter, value)();
+            
+            // (Tuỳ chọn) Làm mất focus của ô input sau khi bấm Enter để UX giống với khi click ra ngoài
+            event.target.blur(); 
+        }
+    };
 
     const handleBackgroundTypeChange = (event, newType) => {
         if (newType !== null) {
@@ -3356,7 +3367,8 @@ const BlankCanvasCreator = ({ onCreate }) => {
                                 type="number"
                                 value={customWidth}
                                 onChange={handleCustomDimChange(setCustomWidth)}
-                                onBlur={handleCustomDimBlur(setCustomWidth, customWidth)} // <--- THÊM DÒNG NÀY
+                                onBlur={handleCustomDimBlur(setCustomWidth, customWidth)}
+                                onKeyDown={handleCustomDimKeyDown(setCustomWidth, customWidth)} // <--- THÊM DÒNG NÀY
                                 fullWidth
                                 size="small"
                                 inputProps={{ min: 3, max: 30, step: 0.1 }}
@@ -3368,7 +3380,8 @@ const BlankCanvasCreator = ({ onCreate }) => {
                                 type="number"
                                 value={customHeight}
                                 onChange={handleCustomDimChange(setCustomHeight)}
-                                onBlur={handleCustomDimBlur(setCustomHeight, customHeight)} // <--- THÊM DÒNG NÀY
+                                onBlur={handleCustomDimBlur(setCustomHeight, customHeight)}
+                                onKeyDown={handleCustomDimKeyDown(setCustomHeight, customHeight)} // <--- THÊM DÒNG NÀY
                                 fullWidth
                                 size="small"
                                 inputProps={{ min: 3, max: 30, step: 0.1 }}
