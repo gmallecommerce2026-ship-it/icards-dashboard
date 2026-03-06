@@ -2158,22 +2158,29 @@ const fitToCanvas = (widthCm, heightCm) => {
     return { width: Math.round(widthPx), height: Math.round(heightPx) };
 };
 const STANDARD_SIZES = {
-    "Thiệp Mời Sự Kiện": {
-        "10 x 15 cm": fitToCanvas(10, 15),
-        "12 x 17 cm": fitToCanvas(12, 17),
-        "15 x 21 cm (A5)": fitToCanvas(14.8, 21),
-        "A4 Dọc (21 x 29.7 cm)": fitToCanvas(21, 29.7),
-    },
     "Thiệp Cưới": {
-        "Nhỏ (8.5 x 12 cm)": fitToCanvas(8.5, 12),
-        "Dài (9.5 x 22 cm)": fitToCanvas(9.5, 22),
         "Truyền thống (12 x 17 cm)": fitToCanvas(12, 17),
-        "Vuông (15 x 15 cm)": fitToCanvas(15, 15),
+        "Truyền thống (12 x 18 cm)": fitToCanvas(12, 18),
+        "Dài sang trọng (9.5 x 22 cm)": fitToCanvas(9.5, 22),
+        "Vuông hiện đại (15 x 15 cm)": fitToCanvas(15, 15),
+        "Nhỏ gọn, tiết kiệm (8.5 x 12 cm)": fitToCanvas(8.5, 12),
+    },
+    "Thiệp Mời Sự Kiện, Hội Nghị": {
+        "Thông dụng (12 x 20 cm)": fitToCanvas(12, 20),
+        "Thông dụng ngang (15 x 10 cm)": fitToCanvas(15, 10),
+        "Sự kiện doanh nghiệp A5 (15 x 21 cm)": fitToCanvas(15, 21),
+        "Dài đặc biệt (10 x 28 cm)": fitToCanvas(10, 28),
+        "Dài đặc biệt (10 x 42 cm)": fitToCanvas(10, 42),
     },
     "Thiệp Chúc Mừng & Cảm Ơn": {
-        "Card Visit (9 x 5.4 cm)": fitToCanvas(9, 5.4),
-        "Nhỏ (7 x 14 cm)": fitToCanvas(7, 14),
-        "Trung bình (10 x 15 cm)": fitToCanvas(10, 15),
+        "Vuông nhỏ (10 x 10 cm)": fitToCanvas(10, 10),
+        "Vuông vừa (12 x 12 cm)": fitToCanvas(12, 12),
+        "Vuông lớn (15 x 15 cm)": fitToCanvas(15, 15),
+        "Chữ nhật chuẩn (10 x 15 cm)": fitToCanvas(10, 15),
+        "Chữ nhật (12 x 15 cm)": fitToCanvas(12, 15),
+        "Chữ nhật dài (10 x 20 cm)": fitToCanvas(10, 20),
+        "Cảm ơn nhỏ gọn (7 x 10 cm)": fitToCanvas(7, 10),
+        "Cảm ơn siêu nhỏ (5.5 x 9 cm)": fitToCanvas(5.5, 9),
     },
 };
 const CanvasWrapper = styled(Box)({
