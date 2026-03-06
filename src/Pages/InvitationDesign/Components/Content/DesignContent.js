@@ -389,11 +389,9 @@ const SortableBlockWrapper = ({ id, blockType, children, onSelectBlock, onRemove
                         <EditIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
-                <Tooltip title="Kéo để di chuyển">
-                    <Box {...attributes} {...listeners} sx={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}>
+                    <Box {...attributes} {...listeners} title="Kéo để di chuyển" sx={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}>
                         <DragIndicatorIcon fontSize="small" />
                     </Box>
-                </Tooltip>
             </Box>
             {children}
         </Box>
@@ -1283,8 +1281,8 @@ const blockComponentMap = {
     CUSTOM_HTML: CustomHtmlPreview,
 };
 const EventSettingsPreview = ({ settings, onSelectField, selectedFieldKey, eventBlocks, onSelectBlock, onRemoveBlock, onReorderBlocks, onEditItem, onUpdateSetting }) => {
-    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
-
+    const keyboardOptions = useMemo(() => ({ coordinateGetter: sortableKeyboardCoordinates }), []);
+    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, keyboardOptions));
     const handleDragEnd = (event) => {
         const { active, over } = event;
         if (active.id !== over.id) {
