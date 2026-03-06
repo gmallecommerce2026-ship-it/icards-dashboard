@@ -8,7 +8,7 @@ import api from "../../../../services/api";
 import {
     Box, Typography, Card, CardContent, CardMedia, Grid, IconButton, Select, MenuItem, InputLabel, FormControl, Slider, Tooltip, Divider, useMediaQuery, List, ListItem, ListItemText, ListItemIcon, CircularProgress, Paper, ButtonGroup, ListItemButton,
     ToggleButtonGroup, ToggleButton,
-    Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
+    Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox
 } from '@mui/material';
 import { useTheme, alpha, styled } from '@mui/material/styles';
 import {
@@ -389,9 +389,11 @@ const SortableBlockWrapper = ({ id, blockType, children, onSelectBlock, onRemove
                         <EditIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
-                    <Box {...attributes} {...listeners} title="Kéo để di chuyển" sx={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}>
+                <Tooltip title="Kéo để di chuyển">
+                    <Box {...attributes} {...listeners} sx={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}>
                         <DragIndicatorIcon fontSize="small" />
                     </Box>
+                </Tooltip>
             </Box>
             {children}
         </Box>
@@ -1281,8 +1283,8 @@ const blockComponentMap = {
     CUSTOM_HTML: CustomHtmlPreview,
 };
 const EventSettingsPreview = ({ settings, onSelectField, selectedFieldKey, eventBlocks, onSelectBlock, onRemoveBlock, onReorderBlocks, onEditItem, onUpdateSetting }) => {
-    const keyboardOptions = useMemo(() => ({ coordinateGetter: sortableKeyboardCoordinates }), []);
-    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, keyboardOptions));
+    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
     const handleDragEnd = (event) => {
         const { active, over } = event;
         if (active.id !== over.id) {
