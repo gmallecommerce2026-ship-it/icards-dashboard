@@ -3262,14 +3262,27 @@ const BlankCanvasCreator = ({ onCreate }) => {
     };
     
     const handleCustomDimChange = (setter) => (event) => {
-        let value = event.target.value;
+            // Chỉ cập nhật giá trị thô vào state để người dùng thoải mái gõ phím
+            setter(event.target.value);
+        };
+
+        const handleCustomDimBlur = (setter, value) => () => {
         if (value === '') {
-            setter('');
+            setter(10); // Đặt về giá trị mặc định nếu người dùng xóa trắng rồi click ra ngoài
             return;
         }
+        
         let numValue = parseFloat(value);
+        
+        if (isNaN(numValue)) {
+            setter(10);
+            return;
+        }
+        
+        // Chỉ ép (clamp) kích thước khi người dùng đã gõ xong và click ra ngoài (Blur)
         if (numValue < 3) numValue = 3;
         if (numValue > 30) numValue = 30;
+        
         setter(numValue);
     };
 
@@ -3334,7 +3347,7 @@ const BlankCanvasCreator = ({ onCreate }) => {
             </FormControl>
 
             {isCustomSize && (
-                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                     <Grid container spacing={2} sx={{ alignItems: 'center', mt: 1 }}>
                         <Grid item xs={6}>
                             <TextField
@@ -3342,17 +3355,19 @@ const BlankCanvasCreator = ({ onCreate }) => {
                                 type="number"
                                 value={customWidth}
                                 onChange={handleCustomDimChange(setCustomWidth)}
+                                onBlur={handleCustomDimBlur(setCustomWidth, customWidth)} // <--- THÊM DÒNG NÀY
                                 fullWidth
                                 size="small"
                                 inputProps={{ min: 3, max: 30, step: 0.1 }}
                             />
                         </Grid>
                         <Grid item xs={6}>
-                             <TextField
+                            <TextField
                                 label="Cao (cm)"
                                 type="number"
                                 value={customHeight}
                                 onChange={handleCustomDimChange(setCustomHeight)}
+                                onBlur={handleCustomDimBlur(setCustomHeight, customHeight)} // <--- THÊM DÒNG NÀY
                                 fullWidth
                                 size="small"
                                 inputProps={{ min: 3, max: 30, step: 0.1 }}
