@@ -3262,11 +3262,11 @@ const BlankCanvasCreator = ({ onCreate }) => {
     };
     
     const handleCustomDimChange = (setter) => (event) => {
-            // Chỉ cập nhật giá trị thô vào state để người dùng thoải mái gõ phím
-            setter(event.target.value);
-        };
+        // Chỉ cập nhật giá trị thô vào state để người dùng thoải mái gõ phím
+        setter(event.target.value);
+    };
 
-        const handleCustomDimBlur = (setter, value) => () => {
+    const handleCustomDimBlur = (setter, value) => () => {
         if (value === '') {
             setter(10); // Đặt về giá trị mặc định nếu người dùng xóa trắng rồi click ra ngoài
             return;
@@ -3285,6 +3285,7 @@ const BlankCanvasCreator = ({ onCreate }) => {
         
         setter(numValue);
     };
+        
 
 
     const handleBackgroundTypeChange = (event, newType) => {
