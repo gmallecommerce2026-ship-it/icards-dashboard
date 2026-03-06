@@ -5276,7 +5276,8 @@ const WeddingInvitationEditor = () => {
                                             }}
                                         />
                                         
-                                        <CheckBoxIcon
+                                        {/* Checkbox ở góc trên bên phải */}
+                                        <Checkbox
                                             checked={isSelected}
                                             size="small"
                                             disableRipple
