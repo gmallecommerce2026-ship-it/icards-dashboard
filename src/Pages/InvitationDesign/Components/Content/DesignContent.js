@@ -2589,17 +2589,22 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
         const startMouseX = e.clientX;
         const startMouseY = e.clientY;
         const handleMove = (moveEvent) => {
-            const isProportional = moveEvent.shiftKey;
+            // SỬA ĐỔI: Ép buộc Text luôn scale theo tỷ lệ (giữ nguyên khung)
+            const isProportional = moveEvent.shiftKey || startItem.type === 'text'; 
+            
             const mouseDx = (moveEvent.clientX - startMouseX) / zoomLevel;
             const mouseDy = (moveEvent.clientY - startMouseY) / zoomLevel;
             const localDx = mouseDx * cos + mouseDy * sin;
             const localDy = -mouseDx * sin + mouseDy * cos;
+            
             let dw = 0;
             let dh = 0;
+            
             if (handleName.includes('right')) dw = localDx;
             if (handleName.includes('left')) dw = -localDx;
             if (handleName.includes('bottom')) dh = localDy;
             if (handleName.includes('top')) dh = -localDy;
+            
             if (isProportional) {
                 const isCorner = handleName.includes('-');
                 if (isCorner) {
@@ -2616,8 +2621,10 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
                     }
                 }
             }
+            
             let newWidth = startItem.width + dw;
             let newHeight = startItem.height + dh;
+            
             if (newWidth < MIN_ITEM_WIDTH) {
                 newWidth = MIN_ITEM_WIDTH;
                 if (isProportional) newHeight = newWidth / aspectRatio;
@@ -2626,14 +2633,17 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
                 newHeight = MIN_ITEM_HEIGHT;
                 if (isProportional) newWidth = newHeight * aspectRatio;
             }
+            
             const finalDw = newWidth - startItem.width;
             const finalDh = newHeight - startItem.height;
             let deltaCenterX = finalDw / 2;
             let deltaCenterY = finalDh / 2;
+            
             if (handleName.includes('left')) deltaCenterX = -finalDw / 2;
             if (handleName.includes('top')) deltaCenterY = -finalDh / 2;
             if (handleName === 'left' || handleName === 'right') deltaCenterY = 0;
             if (handleName === 'top' || handleName === 'bottom') deltaCenterX = 0;
+            
             const rotatedShiftX = deltaCenterX * cos - deltaCenterY * sin;
             const rotatedShiftY = deltaCenterX * sin + deltaCenterY * cos;
             const startCenterX = startItem.x + startItem.width / 2;
@@ -2642,12 +2652,21 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
             const newCenterY = startCenterY + rotatedShiftY;
             const newX = newCenterX - newWidth / 2;
             const newY = newCenterY - newHeight / 2;
+            
             const newProps = {
                 width: newWidth,
                 height: newHeight,
                 x: newX,
                 y: newY,
             };
+
+            // SỬA ĐỔI: Tính toán lại fontSize nếu là Text
+            if (startItem.type === 'text') {
+                const scaleRatio = newWidth / startItem.width;
+                // Giới hạn fontSize không nhỏ hơn 8px
+                newProps.fontSize = Math.max(8, startItem.fontSize * scaleRatio); 
+            }
+
             onUpdateItem(item.id, newProps, false);
         };
         const handleEnd = () => {
@@ -2764,7 +2783,9 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
 const TextEditor = (props) => {
     const { item, onUpdateItem, onSelectItem } = props;
     const inputRef = useRef(null);
+    const measureRef = useRef(null); // Ref dùng để đo kích thước chữ
     const isLocked = item.locked;
+    
     const textStyle = {
         fontSize: `${item.fontSize || 16}px`,
         fontFamily: item.fontFamily || 'Arial',
@@ -2778,27 +2799,59 @@ const TextEditor = (props) => {
         boxSizing: 'border-box',
         width: '100%',
         height: '100%',
-        whiteSpace: 'pre-wrap',
+        whiteSpace: 'pre-wrap', // Chữ không tự động rớt dòng nếu không có enter
         wordBreak: 'break-word',
         backgroundColor: 'transparent',
     };
+
     const handleBlur = () => onUpdateItem(item.id, { isEditing: false }, true);
+    
     const handleKeyDown = (e) => {
+        // Cho phép ấn Shift + Enter để xuống dòng, Enter bình thường để thoát
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleBlur();
         }
     };
+
+    // SỬA ĐỔI: Logic tự động ôm sát chữ (Auto-fit)
     useLayoutEffect(() => {
-        if (!item.isEditing && inputRef.current) {
-            const scrollHeight = inputRef.current.scrollHeight;
-            if (Math.abs(scrollHeight - item.height) > 2) {
-                onUpdateItem(item.id, { height: scrollHeight }, false);
+        if (measureRef.current) {
+            const { offsetWidth, offsetHeight } = measureRef.current;
+            
+            // Cộng thêm 4px buffer để tránh chữ bị cắt do sub-pixel rendering của browser
+            const fitWidth = offsetWidth + 4;
+            const fitHeight = offsetHeight + 4;
+
+            // Chỉ cập nhật nếu sai lệch quá 5px (tránh loop khi đang drag scale)
+            if (Math.abs(fitWidth - item.width) > 5 || Math.abs(fitHeight - item.height) > 5) {
+                onUpdateItem(item.id, { width: fitWidth, height: fitHeight }, false);
             }
         }
-    }, [item.content, item.fontSize, item.fontFamily, item.width, item.isEditing, item.fontWeight, item.fontStyle, item.textAlign, item.height, onUpdateItem, item.id]);
+    // Lắng nghe tất cả các sự kiện làm thay đổi hình dáng của chữ
+    }, [item.content, item.fontSize, item.fontFamily, item.fontWeight, item.fontStyle, item.id, item.width, item.height, onUpdateItem]);
+
     return (
         <DraggableItemComponent {...props}>
+            
+            {/* THÊM MỚI: Thẻ div ẩn dùng để đo chính xác chiều ngang/dọc của chữ */}
+            <div
+                ref={measureRef}
+                style={{
+                    ...textStyle,
+                    position: 'absolute',
+                    visibility: 'hidden',
+                    height: 'auto',
+                    width: 'max-content', // Bắt buộc div ôm sát chiều dài của dòng dài nhất
+                    top: -9999,
+                    left: -9999,
+                    padding: '10px 5px', // Trùng khớp với padding của box thật
+                }}
+            >
+                {/* Thêm dấu space ở cuối để đo đúng khi user gõ space bar */}
+                {item.content ? item.content + '\u200B' : "Văn bản"}
+            </div>
+
             {item.isEditing && !isLocked ? (
                 <textarea
                     ref={inputRef}
@@ -2812,7 +2865,8 @@ const TextEditor = (props) => {
                         resize: 'none',
                         border: 'none',
                         outline: 'none',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        padding: '10px 5px',
                     }}
                     autoFocus
                 />
@@ -2822,9 +2876,9 @@ const TextEditor = (props) => {
                         ...textStyle,
                         userSelect: 'none',
                         cursor: 'inherit',
-                        display: 'flex', // Changed
-                        alignItems: 'center', // Changed
-                        justifyContent: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: item.textAlign === 'left' ? 'flex-start' : (item.textAlign === 'right' ? 'flex-end' : 'center'),
                         padding: '10px 5px',
                     }}
                     onDoubleClick={(e) => { if (!isLocked) { e.stopPropagation(); onUpdateItem(item.id, { isEditing: true }, true); } }}
