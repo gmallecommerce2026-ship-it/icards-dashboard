@@ -2820,8 +2820,8 @@ const TextEditor = (props) => {
                 onUpdateItem(item.id, { height: fitHeight }, false);
             }
         }
-    // Lắng nghe thêm sự thay đổi của item.width để tính lại chiều cao khi kéo ngang
-    }, [item.content, item.fontSize, item.fontFamily, item.fontWeight, item.fontStyle, item.width, item.id, onUpdateItem]);
+    // ĐÃ SỬA LỖI ESLINT: Thêm item.height vào mảng dependency dưới đây
+    }, [item.content, item.fontSize, item.fontFamily, item.fontWeight, item.fontStyle, item.width, item.height, item.id, onUpdateItem]);
 
     return (
         <DraggableItemComponent {...props}>
