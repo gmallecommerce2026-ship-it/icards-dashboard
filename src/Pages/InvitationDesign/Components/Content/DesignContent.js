@@ -2521,7 +2521,7 @@ const UserImageManager = ({ userImages, onItemClick, onImageUploaded, isUploadin
 };
 
 
-const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onSelectItem, zoomLevel, snapToGrid, gridSize, allItems, onSetSnapLines, snapToObject, children, canvasRef }) => {
+const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onSelectItem, zoomLevel, snapToGrid, gridSize, allItems, onSetSnapLines, snapToObject, children, canvasRef, id }) => {
     const itemRef = useRef(null);
     const isLocked = item.locked;
     const [isTransforming, setIsTransforming] = useState(false);
