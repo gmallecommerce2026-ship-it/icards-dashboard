@@ -2661,11 +2661,22 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
                 y: newY,
             };
 
+            // --- BẮT ĐẦU THÊM MỚI ---
+            // Nếu đây là Text, và user đang kéo các viền để thay đổi chiều ngang, ta chốt fixed width
+            if (startItem.type === 'text') {
+                const isChangingWidth = handleName.includes('left') || handleName.includes('right');
+                if (isChangingWidth) {
+                    newProps.isCustomWidth = true; // Chuyển từ Auto-width sang Fixed-width
+                }
+            }
+            // --- KẾT THÚC THÊM MỚI ---
+
             // LOGIC FONT SIZE: Chỉ cập nhật font size nếu đối tượng là Text và đang KÉO GÓC CHÉO
             if (startItem.type === 'text') {
                 if (isCorner) {
                     const scaleRatio = newWidth / startItem.width;
                     newProps.fontSize = Math.max(8, startItem.fontSize * scaleRatio); 
+                    newProps.isCustomWidth = true; // Kéo góc cũng tính là can thiệp chiều ngang
                 }
             }
 
@@ -2781,6 +2792,7 @@ const TextEditor = (props) => {
     const inputRef = useRef(null);
     const measureRef = useRef(null); 
     const isLocked = item.locked;
+    const isCustomWidth = item.isCustomWidth || false; // Cờ kiểm tra xem user đã kéo tay chưa
     
     const textStyle = {
         fontSize: `${item.fontSize || 16}px`,
@@ -2809,24 +2821,49 @@ const TextEditor = (props) => {
         }
     };
 
-    // LOGIC AUTO-FIT MỚI: Chỉ tự động điều chỉnh CHIỀU CAO để ôm chữ rớt dòng
+    // LOGIC AUTO-FIT THÔNG MINH
     useLayoutEffect(() => {
         if (measureRef.current) {
-            const { offsetHeight } = measureRef.current;
-            const fitHeight = offsetHeight + 4; // Cộng thêm 4px buffer
+            // Lấy kích thước tự nhiên của văn bản
+            const { offsetWidth, offsetHeight } = measureRef.current;
+            const fitHeight = offsetHeight;
+            const fitWidth = offsetWidth + 2; // Buffer nhỏ để tránh rớt dòng chập chờn
 
-            // Chỉ cập nhật nếu sai lệch quá 5px, KHÔNG đụng tới item.width
-            if (Math.abs(fitHeight - item.height) > 5) {
-                onUpdateItem(item.id, { height: fitHeight }, false);
+            let updates = {};
+            let needsUpdate = false;
+
+            // 1. NẾU CHƯA KÉO TAY: Mở rộng cả Width và Height
+            if (!isCustomWidth) {
+                if (Math.abs(fitWidth - item.width) > 2) {
+                    updates.width = fitWidth;
+                    
+                    // Logic giữ nguyên tâm/trục khi text phình to (quan trọng cho UI UX)
+                    const widthDiff = fitWidth - item.width;
+                    if (item.textAlign === 'center') {
+                        updates.x = item.x - (widthDiff / 2); // Căn giữa không bị lệch trái phải
+                    } else if (item.textAlign === 'right') {
+                        updates.x = item.x - widthDiff; // Bám sát lề phải
+                    }
+                    needsUpdate = true;
+                }
+            }
+
+            // 2. LUÔN LUÔN FIT CHIỀU CAO (Dù đã kéo ngang tay hay chưa)
+            if (Math.abs(fitHeight - item.height) > 2) {
+                updates.height = fitHeight;
+                needsUpdate = true;
+            }
+
+            if (needsUpdate) {
+                onUpdateItem(item.id, updates, false);
             }
         }
-    // ĐÃ SỬA LỖI ESLINT: Thêm item.height vào mảng dependency dưới đây
-    }, [item.content, item.fontSize, item.fontFamily, item.fontWeight, item.fontStyle, item.width, item.height, item.id, onUpdateItem]);
+    }, [item.content, item.fontSize, item.fontFamily, item.fontWeight, item.fontStyle, item.width, item.height, item.x, item.textAlign, item.id, isCustomWidth, onUpdateItem]);
 
     return (
         <DraggableItemComponent {...props}>
             
-            {/* THẺ DIV ẨN ĐỂ ĐO CHIỀU CAO CHỮ DỰA TRÊN ĐỘ RỘNG HIỆN TẠI */}
+            {/* KHUNG ĐO LƯỜNG ẨN */}
             <div
                 ref={measureRef}
                 style={{
@@ -2834,8 +2871,9 @@ const TextEditor = (props) => {
                     position: 'absolute',
                     visibility: 'hidden',
                     height: 'auto',
-                    // QUAN TRỌNG: Ép width bằng với width hiện tại của khung để chữ rớt dòng
-                    width: `${item.width}px`, 
+                    // QUAN TRỌNG: Nếu chưa scale tay, thả rông chiều ngang (max-content) để đo độ dài chữ.
+                    // Nếu scale tay rồi, chốt width hiện tại để đo chiều cao rớt dòng.
+                    width: isCustomWidth ? `${item.width}px` : 'max-content', 
                     top: -9999,
                     left: -9999,
                     padding: '10px 5px', 
@@ -3001,7 +3039,18 @@ const TextPropertyEditor = ({ item, onUpdate, customFonts }) => {
             />
             <Grid container spacing={2}>
                 <Grid item xs={6}>
-                    <TextField label="Rộng (px)" type="number" value={Math.round(item.width)} onChange={(e) => onUpdate(item.id, { width: parseInt(e.target.value, 10) || MIN_ITEM_WIDTH }, false)} onBlur={() => onUpdate(item.id, {}, true)} fullWidth margin="none" size="small" variant="outlined" InputProps={{ inputProps: { min: MIN_ITEM_WIDTH } }} />
+                    <TextField 
+                        label="Rộng (px)" 
+                        type="number" 
+                        value={Math.round(item.width)} 
+                        onChange={(e) => onUpdate(item.id, { 
+                            width: parseInt(e.target.value, 10) || MIN_ITEM_WIDTH,
+                            isCustomWidth: true // <-- BẬT FIXED-WIDTH NẾU USER TỰ GÕ THÔNG SỐ
+                        }, false)} 
+                        onBlur={() => onUpdate(item.id, {}, true)} 
+                        fullWidth margin="none" size="small" variant="outlined" 
+                        InputProps={{ inputProps: { min: MIN_ITEM_WIDTH } }} 
+                    />
                 </Grid>
                 <Grid item xs={6}>
                     <TextField label="Cao (px)" type="number" value={Math.round(item.height)} onChange={(e) => onUpdate(item.id, { height: parseInt(e.target.value, 10) || MIN_ITEM_HEIGHT }, false)} onBlur={() => onUpdate(item.id, {}, true)} fullWidth margin="none" size="small" variant="outlined" InputProps={{ inputProps: { min: MIN_ITEM_HEIGHT } }} />
@@ -5186,24 +5235,29 @@ const WeddingInvitationEditor = () => {
         const pageForAdding = pages.find(p => p.id === targetPageId);
         if (!pageForAdding) return;
         
+        setActiveTool('default');
+        const defaultWidth = 250;
+        const defaultHeight = 50;
+
+        const itemX = (pageForAdding.canvasWidth / 2) - (defaultWidth / 2);
+        const itemY = (pageForAdding.canvasHeight / 2) - (defaultHeight / 2);
+
         const newTextItem = { 
             ...defaultItemProps, 
             id: uuidv4(), 
             content, 
-            x: (pageForAdding.canvasWidth / 2) - 125, 
-            y: (pageForAdding.canvasHeight / 2) - 25, 
-            width: 250, 
-            height: 50, 
+            x: itemX, 
+            y: itemY, 
+            width: defaultWidth, 
+            height: defaultHeight, 
             fontSize: 24, 
             type: 'text', 
-            zIndex: getNextZIndex() 
+            zIndex: getNextZIndex(),
+            isCustomWidth: false // <-- THÊM DÒNG NÀY ĐỂ BẬT AUTO-FIT MẶC ĐỊNH
         };
 
-        setPages(currentPages => currentPages.map(page => 
-            page.id === targetPageId ? { ...page, items: [...page.items, newTextItem] } : page
-        ), true);
+        setPages(currentPages => currentPages.map(page => page.id === targetPageId ? { ...page, items: [...page.items, newTextItem] } : page), true);
         setSelectedItemId(newTextItem.id);
-        setActiveTool('default');
     }, [pages, getNextZIndex, setPages]);
 
     
