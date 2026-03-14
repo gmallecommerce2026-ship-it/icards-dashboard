@@ -205,7 +205,10 @@ const PageEditPage = () => {
             data.append('seo', JSON.stringify(formData.seo));
             data.append('relatedProducts', JSON.stringify(relatedProducts.map(p => p._id)));
 
-            const contentToSave = typeof formData.content === 'object' ? JSON.stringify(formData.content) : (formData.content || '');
+            let contentToSave = formData.content || '';
+            if (typeof formData.content === 'object' && formData.content !== null) {
+                contentToSave = JSON.stringify(formData.content);
+            }
             data.append('content', contentToSave);
             
             if (formData.thumbnail instanceof File) {
