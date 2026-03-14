@@ -417,24 +417,13 @@ const PageEditPage = () => {
                         </div>
                         <div className="pe-card-body space-y-medium">
                             <div className="pe-type-group">
-                                <button 
-                                    type="button" 
-                                    className={`pe-type-select ${formData.isBlog ? 'active' : ''}`} 
-                                    onClick={() => setFormData(p => ({...p, isBlog: true}))}
-                                >
+                                <button type="button" className={`pe-type-select ${formData.isBlog ? 'active' : ''}`} onClick={() => setFormData(p => ({...p, isBlog: true}))}>
                                     <FileText size={16}/> Blog
                                 </button>
-                                <button 
-                                    type="button" 
-                                    className={`pe-type-select ${!formData.isBlog ? 'active' : ''}`} 
-                                    // SỬA TẠI ĐÂY: Thêm category: '' để reset danh mục khi chọn Page
-                                    onClick={() => setFormData(p => ({...p, isBlog: false, category: ''}))}
-                                >
+                                <button type="button" className={`pe-type-select ${!formData.isBlog ? 'active' : ''}`} onClick={() => setFormData(p => ({...p, isBlog: false}))}>
                                     <LayoutTemplate size={16}/> Page
                                 </button>
                             </div>
-                            
-                            {/* Đoạn này giữ nguyên: Chỉ hiển thị chọn danh mục khi isBlog = true */}
                             {formData.isBlog && (
                                 <div className="form-group">
                                     <label className="pe-label">Danh mục bài viết</label>
