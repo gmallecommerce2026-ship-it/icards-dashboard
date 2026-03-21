@@ -31,7 +31,20 @@ api.interceptors.response.use(
   (response) => response, // Nếu thành công, không làm gì cả
   (error) => {
     let errorMessage = 'Đã có lỗi không mong muốn xảy ra. Vui lòng thử lại sau.';
-
+    
+    if (error.response && error.response.status === 401) {
+      // 1. Xóa token rác trong cookie
+      Cookies.remove('token'); 
+      
+      // 2. Thông báo cho người dùng
+      toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      
+      // 3. Đá văng ra trang đăng nhập
+      // (Dùng window.location.href vì file này nằm ngoài React Router)
+      window.location.href = '/login-admin'; 
+      
+      return Promise.reject(error); // Dừng luồng lỗi tại đây
+    }
     if (error.response) {
       // Lỗi do server trả về (status code 4xx, 5xx)
       // Sử dụng message từ errorHandler của Backend
