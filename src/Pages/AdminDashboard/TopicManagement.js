@@ -53,16 +53,27 @@ const TopicManagement = ({ onTopicsUpdate }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Tự động tạo slug nếu đang để trống
+            let finalSlug = currentTopic.slug?.trim();
+            if (!finalSlug) {
+                finalSlug = generateUuidSlug(currentTopic.name);
+            }
+
+            // Tạo payload mới chứa slug đã được xử lý
+            const payload = { ...currentTopic, slug: finalSlug };
+
             if (editingId) {
-                await topicService.updateTopic(editingId, currentTopic);
+                await topicService.updateTopic(editingId, payload);
                 toast.success("Cập nhật chủ đề thành công!");
             } else {
-                await topicService.createTopic(currentTopic);
+                await topicService.createTopic(payload);
                 toast.success("Thêm chủ đề thành công!");
             }
             resetForm();
             fetchTopics();
-        } catch (error) { toast.error(error.response?.data?.message || "Thao tác thất bại!"); }
+        } catch (error) { 
+            toast.error(error.response?.data?.message || "Thao tác thất bại!"); 
+        }
     };
 
     const handleEdit = (topic) => { setEditingId(topic._id); setCurrentTopic({ name: topic.name, slug: topic.slug }); };

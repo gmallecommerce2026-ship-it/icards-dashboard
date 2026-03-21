@@ -47,7 +47,26 @@ const SortableCategoryRow = ({ category, onEdit, onDelete }) => {
     );
 };
 
+const generateUuidSlug = (name) => {
+    if (!name) return '';
+    
+    // Xử lý chuỗi tiếng Việt sang không dấu và thay khoảng trắng bằng gạch ngang
+    const baseSlug = name
+        .toString()
+        .toLowerCase()
+        .normalize('NFD') // Tách dấu ra khỏi ký tự
+        .replace(/[\u0300-\u036f]/g, '') // Xóa các dấu
+        .replace(/[đĐ]/g, 'd') // Chuyển đ/Đ thành d
+        .replace(/([^a-z0-9\s])/g, '') // Xóa các ký tự đặc biệt
+        .replace(/\s+/g, '-'); // Thay khoảng trắng bằng dấu gạch ngang
 
+    // Tạo UUID (ưu tiên dùng API chuẩn crypto.randomUUID của trình duyệt)
+    const uuid = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    return `${baseSlug}-${uuid}`;
+};
 const PageCategoryManagement = ({ onCategoriesUpdate }) => {
     const [categories, setCategories] = useState([]);
     const [currentCategory, setCurrentCategory] = useState({ name: '', slug: '' });
@@ -83,11 +102,20 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Tự động tạo slug nếu đang để trống
+            let finalSlug = currentCategory.slug?.trim();
+            if (!finalSlug) {
+                finalSlug = generateUuidSlug(currentCategory.name);
+            }
+
+            // Tạo payload mới chứa slug đã được xử lý
+            const payload = { ...currentCategory, slug: finalSlug };
+
             if (editingId) {
-                await pageCategoryService.updateCategory(editingId, currentCategory);
+                await pageCategoryService.updateCategory(editingId, payload);
                 toast.success("Cập nhật danh mục thành công!");
             } else {
-                await pageCategoryService.createCategory(currentCategory);
+                await pageCategoryService.createCategory(payload);
                 toast.success("Thêm danh mục thành công!");
             }
             resetForm();
