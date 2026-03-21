@@ -28,39 +28,40 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response, // Nếu thành công, không làm gì cả
+  (response) => response, 
   (error) => {
     let errorMessage = 'Đã có lỗi không mong muốn xảy ra. Vui lòng thử lại sau.';
-    
+
+    // Xử lý lỗi 401 (Hết hạn Token)
     if (error.response && error.response.status === 401) {
-      // 1. Xóa token rác trong cookie
+      // 1. Luôn xóa token
       Cookies.remove('token'); 
       
-      // 2. Thông báo cho người dùng
-      toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      // 2. KIỂM TRA ĐIỀU KIỆN: Chỉ xử lý chuyển hướng nếu CHƯA ở trang login
+      if (window.location.pathname !== '/login-admin') {
+        toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        window.location.href = '/login-admin'; 
+      }
       
-      // 3. Đá văng ra trang đăng nhập
-      // (Dùng window.location.href vì file này nằm ngoài React Router)
-      window.location.href = '/login-admin'; 
-      
-      return Promise.reject(error); // Dừng luồng lỗi tại đây
+      return Promise.reject(error); 
     }
+
     if (error.response) {
-      // Lỗi do server trả về (status code 4xx, 5xx)
-      // Sử dụng message từ errorHandler của Backend
       errorMessage = error.response.data.message || errorMessage;
     } else if (error.request) {
-      // Lỗi mạng, request đã gửi đi nhưng không nhận được phản hồi
       errorMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng của bạn.';
     } else {
-      // Lỗi khi thiết lập request
       errorMessage = error.message;
     }
 
-    // Hiển thị thông báo lỗi bằng react-toastify
-    toast.error(errorMessage);
+    // Tránh hiển thị toast lỗi 401 lặp lại nếu đang ở trang login
+    if (error.response && error.response.status !== 401) {
+        toast.error(errorMessage);
+    } else if (!error.response || window.location.pathname !== '/login-admin') {
+        // Chỉ hiện toast nếu không phải lỗi 401, hoặc là lỗi 401 nhưng không nằm ở trang login
+        toast.error(errorMessage);
+    }
 
-    // Trả về một Promise bị từ chối để các lệnh .catch() trong component vẫn có thể hoạt động nếu cần
     return Promise.reject(error);
   }
 );
