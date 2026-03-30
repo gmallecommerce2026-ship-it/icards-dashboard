@@ -56,7 +56,7 @@ const TopicManagement = ({ onTopicsUpdate }) => {
             // Tự động tạo slug nếu đang để trống
             let finalSlug = currentTopic.slug?.trim();
             if (!finalSlug) {
-                finalSlug = generateUuidSlug(currentTopic.name);
+               // finalSlug = generateUuidSlug(currentTopic.name);
             }
 
             // Tạo payload mới chứa slug đã được xử lý
