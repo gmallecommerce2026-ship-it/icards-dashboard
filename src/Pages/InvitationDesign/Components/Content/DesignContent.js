@@ -65,6 +65,9 @@ import {
 // import { toast } from 'react-toastify';
 import { showErrorToast } from '../../../../Utils/toastHelper';
 import _ from 'lodash';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import axios from 'axios';
 import {
     DndContext,
     closestCenter,
@@ -93,6 +96,97 @@ import CustomEditor from '../../../../components/CustomEditor';
 import "./customeditor.css"
 import { toast } from 'react-toastify';
 const EDIT_SCALE = 1.0;
+const customIcon = new L.Icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+const LocationMarker = ({ position, setPosition, setAddressText, onLocationChange }) => {
+    useMapEvents({
+        click: async (e) => {
+            const { lat, lng } = e.latlng;
+            setPosition({ lat, lng });
+
+            try {
+                // Dùng API Nominatim miễn phí của OpenStreetMap để lấy tên đường
+                const response = await axios.get(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+                    { headers: { 'Accept-Language': 'vi' } } // Ưu tiên tiếng Việt
+                );
+                
+                const address = response.data.display_name || 'Không tìm thấy địa chỉ';
+                setAddressText(address);
+                onLocationChange({ lat, lng, address });
+            } catch (error) {
+                console.error("Lỗi khi lấy địa chỉ:", error);
+                setAddressText("Lỗi khi tải địa chỉ");
+                onLocationChange({ lat, lng, address: '' });
+            }
+        },
+    });
+
+    return position ? <Marker position={position} icon={customIcon} /> : null;
+};
+const MapPickerEditor = ({ location, onLocationChange }) => {
+    // Tọa độ mặc định: Hồ Gươm, Hà Nội
+    const defaultCenter = { lat: 21.028511, lng: 105.804817 };
+    const [mapCenter, setMapCenter] = useState(location?.lat ? location : defaultCenter);
+    const [addressText, setAddressText] = useState(location?.address || '');
+
+    useEffect(() => { 
+        if (location?.lat && location?.lng) {
+            setMapCenter({ lat: location.lat, lng: location.lng });
+        }
+        if (location?.address) {
+            setAddressText(location.address);
+        }
+    }, [location]);
+
+    // Xử lý khi người dùng tự gõ vào ô text (chưa có search suggest tự động nhưng cho phép nhập tay)
+    const handleAddressChange = (e) => {
+        const text = e.target.value;
+        setAddressText(text);
+        onLocationChange({ ...mapCenter, address: text });
+    };
+
+    return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField 
+                fullWidth 
+                variant="outlined" 
+                placeholder="Nhập địa chỉ hoặc click trên bản đồ để chọn..." 
+                value={addressText}
+                onChange={handleAddressChange}
+            />
+            
+            <Box sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', height: '250px' }}>
+                {/* Thuộc tính key giúp map render lại nếu tọa độ mặc định thay đổi lớn */}
+                <MapContainer 
+                    center={[mapCenter.lat, mapCenter.lng]} 
+                    zoom={15} 
+                    style={{ height: '100%', width: '100%' }}
+                    scrollWheelZoom={true}
+                >
+                    {/* Layer bản đồ miễn phí của OpenStreetMap */}
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <LocationMarker 
+                        position={mapCenter} 
+                        setPosition={setMapCenter} 
+                        setAddressText={setAddressText}
+                        onLocationChange={onLocationChange}
+                    />
+                </MapContainer>
+            </Box>
+        </Box>
+    );
+};
 const addOriginQueryParam = (url) => {
     // Bỏ qua nếu không phải URL hợp lệ (ví dụ: blob, data:image)
     if (!url || typeof url !== 'string' || !url.startsWith('http')) {
@@ -1533,8 +1627,27 @@ const EventForm = ({ itemData, setItemData, onSave, onCancel, onRemove }) => {
                         <TextField label="Giờ" type="time" value={itemData.time || ''} onChange={(e) => setItemData(prev => ({ ...prev, time: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
                     </Grid>
                 </Grid>
-                <TextField label="Địa chỉ" value={itemData.address || ''} onChange={(e) => setItemData(prev => ({ ...prev, address: e.target.value }))} fullWidth multiline rows={2} />
-                <TextField label="Link Google Maps" value={itemData.mapUrl || ''} onChange={(e) => setItemData(prev => ({ ...prev, mapUrl: e.target.value }))} fullWidth placeholder="Dán link Google Maps vào đây" />
+                <Box>
+                    <Typography variant="subtitle2" gutterBottom color="text.secondary">
+                        Địa điểm tổ chức (Tìm kiếm hoặc thả Pin trên bản đồ)
+                    </Typography>
+                    <MapPickerEditor 
+                        location={{ 
+                            lat: itemData.location?.lat, 
+                            lng: itemData.location?.lng, 
+                            address: itemData.address || '' 
+                        }}
+                        onLocationChange={(newLoc) => {
+                            setItemData(prev => ({ 
+                                ...prev, 
+                                address: newLoc.address,
+                                location: { lat: newLoc.lat, lng: newLoc.lng },
+                                // Tự động render mapUrl cho tương thích ngược / nút bấm bên ngoài
+                                mapUrl: `https://www.google.com/maps/search/?api=1&query=${newLoc.lat},${newLoc.lng}`
+                            }))
+                        }}
+                    />
+                </Box>
                 <Box>
                     <Typography variant="subtitle2" gutterBottom>Dress Code</Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
@@ -1562,7 +1675,6 @@ const EventForm = ({ itemData, setItemData, onSave, onCancel, onRemove }) => {
 };
 const SimplifiedStoryEditor = ({ fieldKey, settings, onUpdate, customFonts }) => {
     const theme = useTheme();
-    // Thêm state filter
     const [fontFilter, setFontFilter] = useState('All');
 
     const item = {
@@ -1570,6 +1682,17 @@ const SimplifiedStoryEditor = ({ fieldKey, settings, onUpdate, customFonts }) =>
         content: _.get(settings, fieldKey, ''),
         ..._.get(settings, `${fieldKey}Style`, {})
     };
+
+    // --- 1. BỔ SUNG PROXY STATE TẠI ĐÂY ---
+    const [isFocused, setIsFocused] = useState(false);
+    const [localContent, setLocalContent] = useState(item.content);
+
+    // Sync lại khi data bên ngoài thay đổi (Undo/Redo)
+    useEffect(() => {
+        if (!isFocused) setLocalContent(item.content);
+    }, [item.content, isFocused]);
+    // -------------------------------------
+
     const handleUpdate = (updates) => {
         onUpdate(fieldKey, updates);
     };
@@ -1621,8 +1744,19 @@ const SimplifiedStoryEditor = ({ fieldKey, settings, onUpdate, customFonts }) =>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
                 label="Nội dung"
-                value={item.content}
-                onChange={(e) => handleUpdate({ content: e.target.value })}
+                // --- 2. THAY ĐỔI CÁCH RENDER TEXTFIELD ---
+                placeholder={item.content} // Data có sẵn nay trở thành placeholder mờ
+                value={isFocused && localContent === item.content ? '' : localContent}
+                onChange={(e) => setLocalContent(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => {
+                    setIsFocused(false);
+                    // Trả lại data cũ nếu user xoá trắng rồi click ra ngoài
+                    const finalValue = localContent.trim() === '' ? item.content : localContent;
+                    setLocalContent(finalValue);
+                    handleUpdate({ content: finalValue });
+                }}
+                // -----------------------------------------
                 fullWidth
                 multiline
                 rows={4}
@@ -2047,7 +2181,16 @@ const SettingsPropertyEditor = ({ selectedKey, settings, setSettings, customFont
                     items={value || []}
                     onUpdate={handleUpdate}
                     FormComponent={EventForm}
-                    defaultNewItem={{ title: 'Sự kiện mới', date: new Date().toISOString().split('T')[0], time: '12:00', address: '', mapUrl: '', imageUrl: '', dressCode: [] }}
+                    defaultNewItem={{ 
+                        title: 'Sự kiện mới', 
+                        date: new Date().toISOString().split('T')[0], 
+                        time: '12:00', 
+                        address: '', 
+                        mapUrl: '', 
+                        location: { lat: 21.028511, lng: 105.804817 }, // Mặc định Hà Nội
+                        imageUrl: '', 
+                        dressCode: [] 
+                    }}
                     renderListItem={(item) => <ListItemText primary={item.title} secondary={`${item.date} - ${item.time}`} />}
                     initialItemToEdit={itemToEdit?.type === 'events' ? itemToEdit : null}
                     onCloseEditor={() => setItemToEdit(null)}
@@ -2828,7 +2971,21 @@ const TextEditor = (props) => {
     const inputRef = useRef(null);
     const measureRef = useRef(null); 
     const isLocked = item.locked;
-    const isCustomWidth = item.isCustomWidth || false; // Cờ kiểm tra xem user đã kéo tay chưa
+    const isCustomWidth = item.isCustomWidth || false; 
+
+    // --- 1. THÊM LOGIC LƯU TRỮ VÀ CLEAR DATA KHI FOCUS ---
+    const originalContent = useRef(item.content);
+
+    const handleFocus = () => {
+        originalContent.current = item.content; // Lưu lại data phòng khi user xoá trắng
+        onUpdateItem(item.id, { content: '' }, false); // Cố tình xoá value để hiện placeholder
+    };
+
+    const handleBlur = () => {
+        // Khôi phục data cũ nếu lúc thoát ra value đang rỗng
+        const finalContent = item.content.trim() === '' ? originalContent.current : item.content;
+        onUpdateItem(item.id, { isEditing: false, content: finalContent }, true);
+    };
     
     const textStyle = {
         fontSize: `${item.fontSize || 16}px`,
@@ -2848,7 +3005,6 @@ const TextEditor = (props) => {
         backgroundColor: 'transparent',
     };
 
-    const handleBlur = () => onUpdateItem(item.id, { isEditing: false }, true);
     
     const handleKeyDown = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -2921,11 +3077,15 @@ const TextEditor = (props) => {
             {item.isEditing && !isLocked ? (
                 <textarea
                     ref={inputRef}
+                    // --- 2. CẬP NHẬT PROPS CHO TEXTAREA ---
+                    placeholder={originalContent.current} // Data có sẵn hiện lên dưới dạng mờ
                     value={item.content}
                     onChange={(e) => onUpdateItem(item.id, { content: e.target.value.slice(0, MAX_TEXT_LENGTH) }, false)}
                     onBlur={handleBlur}
+                    onFocus={handleFocus} // Gọi hàm handleFocus thay vì e.target.select()
                     onKeyDown={handleKeyDown}
                     onClick={(e) => e.stopPropagation()}
+                    // --------------------------------------
                     style={{
                         ...textStyle,
                         resize: 'none',
