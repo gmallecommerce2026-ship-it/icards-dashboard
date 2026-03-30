@@ -825,7 +825,7 @@ const PannableImageFrame = ({ item, onUpdateItem, onSelectItem }) => {
   const imageStyles = {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    objectFit: 'fill',
     userSelect: 'none',
     pointerEvents: isEditing ? 'auto' : 'none', 
     touchAction: 'none',
@@ -2521,34 +2521,48 @@ const UserImageManager = ({ userImages, onItemClick, onImageUploaded, isUploadin
 };
 
 
-const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onSelectItem, zoomLevel, snapToGrid, gridSize, allItems, onSetSnapLines, snapToObject, children, canvasRef, id }) => {
+const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onSelectItem, zoomLevel, snapToGrid, gridSize, allItems, onSetSnapLines, snapToObject, children, canvasRef, id }) => {    
     const itemRef = useRef(null);
     const isLocked = item.locked;
     const [isTransforming, setIsTransforming] = useState(false);
+    
+    // 1. THÊM REF NÀY: Cờ chặn React useEffect ghi đè vị trí khi đang kéo
+    const isDraggingRef = useRef(false);
+    
     const dragStartPos = useRef({ x: 0, y: 0 });
 
     const motionX = useMotionValue(item.x);
     const motionY = useMotionValue(item.y);
-    // --- FIX: Sử dụng motion value cho rotation để xoay mượt hơn ---
     const motionRotate = useMotionValue(item.rotation || 0);
 
-    // useEffect(() => {
-    //     motionX.set(item.x);
-    //     motionY.set(item.y);
-    //     // --- FIX: Đồng bộ motionRotate với state của item khi có thay đổi từ bên ngoài ---
-    //     motionRotate.set(item.rotation || 0);
-    // }, [item.x, item.y, item.rotation, motionX, motionY, motionRotate]);
+    // 2. SỬA USEEFFECT: Chặn đồng bộ ngược từ trên xuống nếu đang kéo
+    useEffect(() => {
+        if (!isTransforming && !isDraggingRef.current) {
+            motionX.set(item.x);
+            motionY.set(item.y);
+            motionRotate.set(item.rotation || 0);
+        }
+    }, [item.x, item.y, item.rotation, isTransforming, motionX, motionY, motionRotate]);
 
-    const handleDragStart = (e, info) => {
-        if (isLocked || isTransforming) return;
-        dragStartPos.current = { x: item.x, y: item.y };
+    // 3. ĐỔI onDragStart THÀNH onPanSessionStart
+    const handlePanStart = (e, info) => {
+        if (isLocked || isTransforming || item.isEditing) return;
+        
+        isDraggingRef.current = true; // Bật cờ khóa re-render
+        
+        // QUAN TRỌNG: Lấy tọa độ realtime từ motion value thay vì item.x để tránh sai số frame đầu
+        dragStartPos.current = { x: motionX.get(), y: motionY.get() }; 
+        
         onSelectItem(item.id);
     };
 
-    const handleDrag = (e, info) => {
-        if (isLocked || isTransforming) return;
+    // 4. ĐỔI onDrag THÀNH onPan
+    const handlePan = (e, info) => {
+        if (isLocked || isTransforming || !isDraggingRef.current) return;
+        
         let newX = dragStartPos.current.x + info.offset.x / zoomLevel;
         let newY = dragStartPos.current.y + info.offset.y / zoomLevel;
+
         let guides = [];
         if (snapToObject) {
             const snapResult = calculateSnapping({ ...item, x: newX, y: newY }, allItems, zoomLevel);
@@ -2560,11 +2574,14 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
         motionY.set(newY);
         onSetSnapLines(guides);
     };
+    
+    // 5. ĐỔI onDragEnd THÀNH onPanEnd
+    const handlePanEnd = (e, info) => {
+        if (isLocked || isTransforming || !isDraggingRef.current) return;
+        
+        let finalX = motionX.get();
+        let finalY = motionY.get();
 
-    const handleDragEnd = (e, info) => {
-        if (isLocked || isTransforming) return;
-        let finalX = dragStartPos.current.x + info.offset.x / zoomLevel;
-        let finalY = dragStartPos.current.y + info.offset.y / zoomLevel;
         const snapResult = calculateSnapping({ ...item, x: finalX, y: finalY }, allItems, zoomLevel);
         if (snapResult.guides.length > 0 && snapToObject) {
             finalX = snapResult.snappedX;
@@ -2573,8 +2590,18 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
             finalX = Math.round(finalX / gridSize) * gridSize;
             finalY = Math.round(finalY / gridSize) * gridSize;
         }
+
+        motionX.set(finalX);
+        motionY.set(finalY);
         onSetSnapLines([]);
+        
+        // Lưu trạng thái lên State tổng
         onUpdateItem(item.id, { x: finalX, y: finalY }, true);
+
+        // DELAY TẮT CỜ: Đợi React render xong (khoảng 50ms) mới tắt cờ, triệt tiêu hoàn toàn giật hình
+        setTimeout(() => {
+            isDraggingRef.current = false;
+        }, 50);
     };
 
     const createResizeHandler = (handleName) => (e) => {
@@ -2653,7 +2680,8 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
             const newCenterY = startCenterY + rotatedShiftY;
             const newX = newCenterX - newWidth / 2;
             const newY = newCenterY - newHeight / 2;
-            
+            motionX.set(newX);
+            motionY.set(newY);
             const newProps = {
                 width: newWidth,
                 height: newHeight,
@@ -2748,11 +2776,20 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
     return (
         <DraggableItem
             ref={itemRef}
-            drag={!isTransforming && !isLocked && !item.isEditing}
-            dragMomentum={false} // <--- THÊM DÒNG NÀY ĐỂ TẮT QUÁN TÍNH
-            onDragStart={handleDragStart}
-            onDrag={handleDrag}
-            onDragEnd={handleDragEnd}
+            id={id}
+            
+            // ❌ XÓA BỎ các prop drag cũ gây xung đột:
+            // drag={!isTransforming && !isLocked && !item.isEditing}
+            // dragMomentum={false} 
+            // onDragStart={handleDragStart}
+            // onDrag={handleDrag}
+            // onDragEnd={handleDragEnd}
+            
+            // ✅ SỬ DỤNG GESTURE "onPan" CỦA FRAMER MOTION:
+            onPanSessionStart={handlePanStart}
+            onPan={handlePan}
+            onPanEnd={handlePanEnd}
+            
             style={{
                 x: motionX, 
                 y: motionY, 
@@ -2765,7 +2802,6 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
                 opacity: item.opacity,
                 cursor: isLocked ? 'not-allowed' : 'grab',
             }}
-            id={id}
         >
             {children}
             {isSelected && !isLocked && (
@@ -5199,11 +5235,15 @@ const WeddingInvitationEditor = () => {
         const cw = page.canvasWidth;
         const ch = page.canvasHeight;
         
+        // CẬP NHẬT MỚI: Reset lại toàn bộ transform data để ảnh fit hoàn hảo
         handleUpdateItem(id, {
             width: cw,
             height: ch,
-            x: 0,
-            y: 0,
+            x: 0,                 // Đưa về mép trái
+            y: 0,                 // Đưa về mép trên
+            rotation: 0,          // Reset góc xoay về 0 độ
+            shape: 'square',      // Đảm bảo không bị cắt tròn khi full canvas
+            imagePosition: { x: 0, y: 0, scale: 1 }, // Reset lại vị trí pan/crop bên trong PannableImageFrame
         }, true);
 
     }, [pages, currentPageId, handleUpdateItem]);
