@@ -2940,7 +2940,9 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
                 zIndex: isSelected ? item.zIndex + 1000 : item.zIndex,
                 width: item.width,
                 height: item.height,
-                border: (isSelected || isTransforming) ? `2.5px solid ${BORDER_COLOR}` : `2.5px solid transparent`,
+                border: (isSelected || isTransforming) 
+                    ? `2.5px solid ${isLocked ? '#EF4444' : BORDER_COLOR}` // #EF4444 là màu đỏ báo hiệu Locked
+                    : `2.5px solid transparent`,
                 transformOrigin: 'center center',
                 opacity: item.opacity,
                 cursor: isLocked ? 'not-allowed' : 'grab',
@@ -3420,28 +3422,6 @@ const ImagePropertyEditor = ({ item, onUpdate, onScaleToCanvas }) => {
                     <TextField label="Cao (px)" type="number" value={Math.round(item.height)} onChange={(e) => onUpdate(item.id, { height: parseInt(e.target.value, 10) || MIN_ITEM_HEIGHT }, false)} onBlur={() => onUpdate(item.id, {}, true)} fullWidth margin="none" size="small" variant="outlined" InputProps={{ inputProps: { min: MIN_ITEM_HEIGHT } }} />
                 </Grid>
             </Grid>
-            <Box>
-                <Typography gutterBottom variant="body2" color="text.secondary">
-                    Hình dạng Khung
-                </Typography>
-                <ToggleButtonGroup
-                    value={item.shape || 'square'}
-                    exclusive
-                    onChange={(_e, newShape) => {
-                        if (newShape) onUpdate(item.id, { shape: newShape }, true);
-                    }}
-                    aria-label="shape"
-                    size="small"
-                    fullWidth
-                >
-                    <ToggleButton value="square" aria-label="vuông" sx={{flex: 1}}>
-                        Hình Vuông
-                    </ToggleButton>
-                    <ToggleButton value="circle" aria-label="tròn" sx={{flex: 1}}>
-                        Hình Tròn
-                    </ToggleButton>
-                </ToggleButtonGroup>
-            </Box>
             <Box>
                 <Typography gutterBottom variant="body2" color="text.secondary">Xoay (độ)</Typography>
                 <Slider value={item.rotation || 0} onChange={(_e, newValue) => onUpdate(item.id, { rotation: newValue }, false)} onChangeCommitted={() => onUpdate(item.id, {}, true)} aria-labelledby="rotation-slider" valueLabelDisplay="auto" step={1} marks min={-180} max={180} size="small" />
@@ -5322,11 +5302,28 @@ const WeddingInvitationEditor = () => {
             if (meta && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); handleRedo(); }
             if (meta && e.key === 'c') { e.preventDefault(); handleCopy(); }
             if (meta && e.key === 'v') { e.preventDefault(); handlePaste(); }
-            if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); if (selectedItemId) handleDeleteItem(selectedItemId); }
+            if (meta && e.key.toLowerCase() === 'l') { 
+                e.preventDefault(); 
+                if (selectedItemId) {
+                    handleToggleLayerLock(selectedItemId);
+                    // (Tuỳ chọn) toast.info("Đã thay đổi trạng thái khóa");
+                }
+            }
+            if (e.key === 'Delete' || e.key === 'Backspace') { 
+                e.preventDefault(); 
+                if (selectedItemId) {
+                    const itemToDel = currentItems.find(i => i.id === selectedItemId);
+                    if (itemToDel && !itemToDel.locked) {
+                        handleDeleteItem(selectedItemId); 
+                    } else if (itemToDel?.locked) {
+                        toast.warn("Không thể xóa đối tượng đang bị khóa!");
+                    }
+                } 
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleUndo, handleRedo, handleCopy, handlePaste, handleDeleteItem, selectedItemId]);
+    }, [handleUndo, handleRedo, handleCopy, handlePaste, handleDeleteItem, selectedItemId, currentItems, handleToggleLayerLock]);
     useEffect(() => {
         const bgCanvas = document.getElementById(`background-canvas-${currentPage?.id}`);
         if (!bgCanvas || !currentPage) return;
@@ -5384,7 +5381,10 @@ const WeddingInvitationEditor = () => {
     }, [snapLines, currentCanvasWidth, currentCanvasHeight, zoomLevel, currentPage]);
     useEffect(() => { if (canvasWrapperRef.current) canvasWrapperRef.current.style.cursor = isPanning.current ? 'grabbing' : 'grab'; });
     const handleToggleLayerVisibility = (id) => { const i = currentItems.find(it => it.id === id); if (i) handleUpdateItem(id, { visible: !(i.visible ?? true) }, true); };
-    const handleToggleLayerLock = (id) => { const i = currentItems.find(it => it.id === id); if (i) handleUpdateItem(id, { locked: !i.locked }, true); };
+    const handleToggleLayerLock = useCallback((id) => { 
+        const i = currentItems.find(it => it.id === id); 
+        if (i) handleUpdateItem(id, { locked: !i.locked }, true); 
+    }, [currentItems, handleUpdateItem]);
     const handleScaleImageToFit = useCallback((id) => {
         const page = pages.find(p => p.id === currentPageId);
         if (!page || !id) return;
@@ -5862,16 +5862,34 @@ const WeddingInvitationEditor = () => {
                                         <Tooltip title="Sao chép (Ctrl+C)"><IconButton size="small" onClick={handleCopy} disabled={!activeItem}><ContentCopyIcon /></IconButton></Tooltip>
                                         <Tooltip title="Dán (Ctrl+V)"><IconButton size="small" onClick={handlePaste} disabled={!clipboard}><ContentPasteIcon /></IconButton></Tooltip>
                                     </Box>
-                                    {activeItem && !activeItem.locked && (
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                            <Tooltip title="Độ mờ"><OpacityIcon fontSize="small" sx={{ color: 'text.secondary' }} /></Tooltip>
-                                            <Slider value={activeItem.opacity} onChange={(_e, val) => handleUpdateItem(selectedItemId, { opacity: val }, false)} onChangeCommitted={() => handleUpdateItem(selectedItemId, {}, true)} min={0} max={1} step={0.01} sx={{ width: 100 }} size="small" />
-                                            <Divider orientation="vertical" flexItem />
-                                            <Tooltip title="Đưa lên trên"><IconButton size="small" onClick={() => handleBringToFront(selectedItemId)}><FlipToFrontIcon /></IconButton></Tooltip>
-                                            <Tooltip title="Đưa xuống dưới"><IconButton size="small" onClick={() => handleSendToBack(selectedItemId)}><FlipToBackIcon /></IconButton></Tooltip>
-                                            <Tooltip title="Xóa đối tượng"><IconButton size="small" color="error" onClick={() => handleDeleteItem(selectedItemId)}><DeleteIcon /></IconButton></Tooltip>
-                                        </Box>
-                                    )}
+                                    {activeItem && (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        {/* Nút Khóa / Mở khóa luôn hiển thị */}
+        <Tooltip title={activeItem.locked ? "Mở khóa (Ctrl+L)" : "Khóa vị trí & kích thước (Ctrl+L)"}>
+            <IconButton 
+                size="small" 
+                onClick={() => handleToggleLayerLock(selectedItemId)} 
+                color={activeItem.locked ? "primary" : "default"}
+            >
+                {activeItem.locked ? <LockIcon /> : <LockOpenIcon />}
+            </IconButton>
+        </Tooltip>
+        
+        <Divider orientation="vertical" flexItem />
+
+        {/* Các nút sửa đổi chỉ hiện khi KHÔNG khóa */}
+        {!activeItem.locked && (
+            <>
+                <Tooltip title="Độ mờ"><OpacityIcon fontSize="small" sx={{ color: 'text.secondary' }} /></Tooltip>
+                <Slider value={activeItem.opacity} onChange={(_e, val) => handleUpdateItem(selectedItemId, { opacity: val }, false)} onChangeCommitted={() => handleUpdateItem(selectedItemId, {}, true)} min={0} max={1} step={0.01} sx={{ width: 100 }} size="small" />
+                <Divider orientation="vertical" flexItem />
+                <Tooltip title="Đưa lên trên"><IconButton size="small" onClick={() => handleBringToFront(selectedItemId)}><FlipToFrontIcon /></IconButton></Tooltip>
+                <Tooltip title="Đưa xuống dưới"><IconButton size="small" onClick={() => handleSendToBack(selectedItemId)}><FlipToBackIcon /></IconButton></Tooltip>
+                <Tooltip title="Xóa đối tượng"><IconButton size="small" color="error" onClick={() => handleDeleteItem(selectedItemId)}><DeleteIcon /></IconButton></Tooltip>
+            </>
+        )}
+    </Box>
+)}
                                 </Paper>
                                 <Box sx={{ flexGrow: 1, position: 'relative' }}>
                                     <CanvasWrapper
