@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
-import { Paper, Typography, Button, Table, TableBody, TableCell, TableHead, TableRow, Box } from '@mui/material';
+import { Paper, Typography, Button, Table, TableBody, TableCell, TableHead, TableRow, Box, TableContainer } from '@mui/material';
 import { DragIndicator, Save } from '@mui/icons-material';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
