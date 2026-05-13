@@ -26,6 +26,7 @@ import { saveAs } from 'file-saver';
 import BulkDeleteModal from './BulkDeleteModal';
 import { Select } from 'antd';
 import PageEditPage from './PageEditPage';
+import OccasionOrderManager from './OccasionOrderManager';
 const { Option } = Select;
 const CM_TO_PX = 37.795;
 const MAX_DIMENSION_PX = 800;
@@ -2073,7 +2074,7 @@ const SettingsPage = () => {
                     onFileChange={handleFileChange}
                 />
                 {/* END MODIFICATION */}
-                
+                <OccasionOrderManager />
                 {/* ... (Giữ nguyên JSX cho Footer Management) ... */}
                  <div className="card settings-card">
                     <h3 className="card__title"><LinkIcon size={24} /> Quản lý Footer</h3>
