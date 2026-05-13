@@ -50,7 +50,7 @@ const OccasionOrderManager = () => {
             // Lấy cả templates (giống client) và settings hiện tại
             const [templatesRes, settingsRes] = await Promise.all([
                 api.get('/invitation-templates?limit=50'),
-                api.get('/settings') // API lấy cấu hình chung của bạn
+                api.get('/admin/settings') // API lấy cấu hình chung của bạn
             ]);
 
             const allTemplates = templatesRes.data.data || [];
@@ -108,15 +108,12 @@ const OccasionOrderManager = () => {
         try {
             const orderedKeys = occasions.map(item => item.key);
             
-            // CẦN SỬA Ở ĐÂY: Phải gửi đúng format mà Backend của bạn đang parse
             const formData = new FormData();
-            
-            // Đóng gói mảng occasionOrder vào object settings
             const settingsPayload = { occasionOrder: orderedKeys };
             formData.append('settings', JSON.stringify(settingsPayload));
             
-            // Gọi API với formData
-            await api.patch('/settings', formData, {
+            // === SỬA TẠI ĐÂY: Đổi api.patch thành api.put và thêm /admin ===
+            await api.put('/admin/settings', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
