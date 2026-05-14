@@ -290,11 +290,13 @@ const SortableTemplateCard = ({ template, onEdit, onDelete, onStatusChange, onOr
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: template._id });
     const navigate = useNavigate();
     const [order, setOrder] = useState(template.displayOrder);
+    
+    // 1. THÊM STATE LOADING CHO NÚT DUYỆT
+    const [isApproving, setIsApproving] = useState(false);
 
     useEffect(() => {
         setOrder(template.displayOrder);
     }, [template.displayOrder]);
-
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -306,7 +308,6 @@ const SortableTemplateCard = ({ template, onEdit, onDelete, onStatusChange, onOr
         if (!isNaN(newOrder) && newOrder !== template.displayOrder) {
             onOrderChange(template._id, newOrder);
         } else {
-            // Hoàn tác lại giá trị cũ nếu input không hợp lệ hoặc không thay đổi
             setOrder(template.displayOrder);
         }
     };
@@ -318,31 +319,83 @@ const SortableTemplateCard = ({ template, onEdit, onDelete, onStatusChange, onOr
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
             handleOrderInputBlur();
-            e.target.blur(); // Bỏ focus khỏi input
+            e.target.blur();
         }
     }
 
+    // 2. THÊM HÀM XỬ LÝ CLICK "DUYỆT NGAY"
+    const handleApproveClick = async (e) => {
+        e.stopPropagation(); // Ngăn sự kiện lan ra ngoài
+        setIsApproving(true);
+        try {
+            await onStatusChange(template._id, true);
+        } catch (error) {
+            console.error("Lỗi khi duyệt:", error);
+        } finally {
+            setIsApproving(false);
+        }
+    };
 
     return (
         <div ref={setNodeRef} style={style} className="template-card">
-            {/* Tay nắm kéo thả riêng biệt */}
             <DragHandle {...attributes} {...listeners} />
             
-            {/* SỬA LỖI: Đã loại bỏ onClick khỏi div này */}
-            <div className="template-card__image-wrapper">
+            <div className="template-card__image-wrapper" style={{ position: 'relative' }}>
                 <img src={template.imgSrc} alt={template.title} className="template-card__image" />
+                
+                {/* 3. THÊM OVERLAY TRẠNG THÁI (Chỉ hiện khi chưa duyệt) */}
+                {!template.isActive && (
+                    <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.55)', // Phủ mờ đen
+                        display: 'flex', flexDirection: 'column', 
+                        justifyContent: 'center', alignItems: 'center',
+                        zIndex: 2 // Đặt thấp hơn lớp hover (template-card__overlay)
+                    }}>
+                        <div style={{
+                            backgroundColor: '#FFFBEB', color: '#D97706', padding: '4px 12px',
+                            borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', marginBottom: '10px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }}>
+                            ● Đang ẩn (Chưa duyệt)
+                        </div>
+                        <button 
+                            onClick={handleApproveClick}
+                            disabled={isApproving}
+                            style={{
+                                backgroundColor: '#10B981', color: '#fff', border: 'none',
+                                padding: '8px 16px', borderRadius: '6px', cursor: 'pointer',
+                                fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px',
+                                transition: 'all 0.2s', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)',
+                                opacity: isApproving ? 0.7 : 1
+                            }}
+                        >
+                            {isApproving ? 'Đang xử lý...' : '✓ Duyệt ngay'}
+                        </button>
+                    </div>
+                )}
+
+                {/* Lớp overlay chứa chức năng (Sửa, Xóa) cũ của bạn */}
+                {/* Lưu ý: Trong CSS của bạn, đảm bảo .template-card__overlay có z-index lớn hơn 2 (ví dụ: z-index: 10) để khi hover nó nổi lên trên lớp Đang ẩn */}
                 <div className="template-card__overlay">
-                    {/* Thêm e.stopPropagation() để đảm bảo an toàn */}
                     <button onClick={(e) => {e.stopPropagation(); navigate(`/dashboard/templates/design/${template._id}`)}} className="template-card__action-btn" title="Chỉnh sửa thiết kế"><Palette size={24} /></button>
                     <button onClick={(e) => {e.stopPropagation(); onEdit(template)}} className="template-card__action-btn" title="Chỉnh sửa thông tin"><Edit size={24} /></button>
                     <button onClick={(e) => {e.stopPropagation(); onDelete(template._id)}} className="template-card__action-btn" title="Xóa mẫu"><Trash2 size={24} /></button>
                 </div>
             </div>
+
             <div className="template-card__info">
-                {/* THAY ĐỔI: Thêm thuộc tính title */}
                 <h4 className="template-card__name" title={template.title}>{template.title}</h4>
-                <p className="template-card__category">{template.category}</p>
-                 <div className="template-card__footer">
+                
+                {/* 4. CẬP NHẬT GIAO DIỆN CATEGORY KÈM THEO TRẠNG THÁI HIỂN THỊ */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p className="template-card__category" style={{ margin: 0 }}>{template.category}</p>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: template.isActive ? '#10B981' : '#D97706' }}>
+                        {template.isActive ? 'Đang hiển thị' : 'Đang ẩn'}
+                    </span>
+                </div>
+
+                <div className="template-card__footer" style={{ marginTop: '10px' }}>
                     <div className="template-card__order-input-wrapper">
                         <label htmlFor={`order-${template._id}`}>Thứ tự:</label>
                         <input
@@ -352,7 +405,7 @@ const SortableTemplateCard = ({ template, onEdit, onDelete, onStatusChange, onOr
                             onChange={handleOrderInputChange}
                             onBlur={handleOrderInputBlur}
                             onKeyPress={handleKeyPress}
-                            onClick={(e) => e.stopPropagation()} // Ngăn sự kiện click của card
+                            onClick={(e) => e.stopPropagation()}
                             className="template-card__order-input"
                         />
                     </div>
@@ -994,20 +1047,22 @@ const TemplateManagementPage = () => {
 
     // 4. Effect: Tải cấu trúc danh mục chuẩn (Thay thế logic cũ)
     useEffect(() => {
-        const fetchNavTree = async () => {
-            try {
-                // Lấy dữ liệu từ Settings thay vì API template riêng lẻ
-                const settings = await AuthService.getSettings();
-                const tree = settings.headerNav || [];
-                setNavTree(tree);
-                // Cấp 1: Categories
-                setCategories(tree.map(node => node.title));
-            } catch (error) {
-                console.error("Không thể tải cấu trúc danh mục chuẩn.");
-            }
-        };
-        fetchNavTree();
-    }, []);
+    const fetchNavTree = async () => {
+        try {
+            const response = await AuthService.getSettings();
+            // Lấy data an toàn, phòng trường hợp axios bọc data bên trong
+            const settings = response?.data || response || {};
+            const tree = settings.headerNav || [];
+            
+            setNavTree(tree);
+            // Cấp 1: Categories
+            setCategories(tree.map(node => node.title));
+        } catch (error) {
+            console.error("Không thể tải cấu trúc danh mục chuẩn.", error);
+        }
+    };
+    fetchNavTree();
+}, []);
 
     // 5. Effect: Tự động cập nhật Groups khi Category thay đổi (Client-side)
     useEffect(() => {
@@ -1384,20 +1439,23 @@ const TemplateModal = ({ isOpen, onClose, onSave, template }) => {
 
     // 1. Tải cây danh mục chuẩn từ Settings khi mở Modal
     useEffect(() => {
-        const fetchNavTree = async () => {
-            if (isOpen) {
-                try {
-                    const settings = await AuthService.getSettings();
-                    const tree = settings.headerNav || [];
-                    setNavTree(tree);
-                    setCategories(tree.map(node => node.title));
-                } catch (error) {
-                    toast.error("Không thể tải cấu trúc danh mục chuẩn.");
-                }
+    const fetchNavTree = async () => {
+        if (isOpen) {
+            try {
+                const response = await AuthService.getSettings();
+                const settings = response?.data || response || {};
+                const tree = settings.headerNav || [];
+                
+                setNavTree(tree);
+                setCategories(tree.map(node => node.title));
+            } catch (error) {
+                console.error(error);
+                toast.error("Không thể tải cấu trúc danh mục chuẩn.");
             }
-        };
-        fetchNavTree();
-    }, [isOpen]);
+        }
+    };
+    fetchNavTree();
+}, [isOpen]); // Lưu ý: Chỉ cần phụ thuộc vào isOpen để tránh memory leak
 
     // 2. Tự động cập nhật Groups khi Category thay đổi (dựa trên navTree)
     useEffect(() => {

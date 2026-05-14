@@ -79,16 +79,23 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
     );
 
 
-    const fetchCategories = useCallback(async () => {
-        try {
-            const response = await pageCategoryService.getAllCategories();
-            const fetchedCategories = response.data.data || [];
-            setCategories(fetchedCategories);
-            if(onCategoriesUpdate) onCategoriesUpdate(fetchedCategories);
-        } catch (error) {
-            toast.error("Lỗi khi tải danh mục!");
-        }
-    }, [onCategoriesUpdate]);
+    // Thay thế đoạn này:
+const fetchCategories = useCallback(async () => {
+    try {
+        const response = await pageCategoryService.getAllCategories();
+        // CŨ: const fetchedCategories = response.data.data || [];
+        
+        // MỚI: Bóc tách dữ liệu an toàn (Fallback data extraction)
+        const responseData = response?.data?.data || response?.data || response;
+        const fetchedCategories = Array.isArray(responseData) ? responseData : [];
+        
+        setCategories(fetchedCategories);
+        if(onCategoriesUpdate) onCategoriesUpdate(fetchedCategories);
+    } catch (error) {
+        console.error(error);
+        toast.error("Lỗi khi tải danh mục!");
+    }
+}, [onCategoriesUpdate]);
 
     useEffect(() => {
         fetchCategories();
