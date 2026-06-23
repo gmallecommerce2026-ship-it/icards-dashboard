@@ -2925,3 +2925,195 @@ input:checked + .slider:before {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* Hiệu ứng mượt mà cho nút Duyệt ngay bên trong Overlay */
+.template-card__approve-action-btn {
+    opacity: 0;
+    transform: translateY(15px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.template-card:hover .template-card__approve-action-btn {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.template-card__approve-action-btn:hover {
+    background-color: #059669 !important; /* Xanh lá đậm hơn một chút khi hover trực tiếp vào nút */
+    box-shadow: 0 6px 10px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Đảm bảo overlay có nền tối mờ khi hover để các nút nổi bật lên */
+.template-card:hover .template-card__overlay {
+    background: rgba(0, 0, 0, 0.6); 
+}
+/* ================================================================== */
+/* CSS CHO BẢNG KÉO THẢ (DRAG & DROP TABLE)
+/* ================================================================== */
+.draggable-table-row {
+    background-color: var(--admin-white);
+    transition: background-color 0.2s ease;
+}
+
+.draggable-table-row:hover {
+    background-color: #f8f9fa !important;
+}
+
+.drag-handle-wrapper {
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.drag-handle-wrapper:hover {
+    background-color: #e9ecef;
+    color: var(--admin-text-primary);
+}
+
+.drag-handle-wrapper:active {
+    cursor: grabbing;
+}
+
+/* Xóa border dưới cùng của dòng cuối để không bị lỗi border đôi */
+.table-container .table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ================================================================== */
+/* TỐI ƯU HÓA MODAL TEMPLATE (NO-SCROLL TRÊN PC)
+/* ================================================================== */
+
+/* 1. Kích thước Modal cực đại cho PC */
+.modal-content.modal-xlarge {
+    width: 95vw;
+    max-width: 1400px;
+    height: 90vh; /* Ép cứng chiều cao bằng 90% màn hình */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Cấm modal cuộn bậy bạ */
+}
+
+/* 2. Cấu trúc lại Modal Body để áp dụng Flex */
+.template-modal-body-no-scroll {
+    padding: 0 !important; /* Bỏ padding cũ để dễ kiểm soát layout */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.template-modal-form-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* 3. Chia 2 cột (Tỉ lệ 5:4) lấp kín không gian */
+.template-modal-grid-layout {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr; /* Cột trái to hơn cột phải một chút */
+    gap: 2rem;
+    padding: 1.5rem;
+    flex-grow: 1; /* Chiếm toàn bộ khoảng trống phía trên Footer */
+    overflow: hidden; /* Ẩn scroll ở cấp này */
+}
+
+/* 4. Cột trái và Cột phải dùng Flex column để phân bổ chiều cao */
+.template-col-left, .template-col-right {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* 5. Ép bảng danh mục (Taxonomy) ngắn lại */
+.taxonomy-group-compact {
+    margin-bottom: 1rem;
+}
+.taxonomy-selector-grid.compact-grid {
+    height: 180px; /* Hạ từ 350px xuống 180px để nhường chỗ cho Editor */
+    padding: 0.5rem;
+}
+
+/* 6. Cho phép Editor và JSON Textarea "Nở" lấp đầy chỗ trống */
+.flex-grow-editor {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Nở ra lấp kín khoảng trắng */
+    margin-bottom: 0;
+    overflow: hidden;
+}
+
+.editor-wrapper-compact {
+    flex-grow: 1;
+    overflow-y: auto;
+    border: 1px solid var(--admin-border-color);
+    border-radius: 8px;
+}
+
+/* Ghi đè CustomEditor (Tiptap) để nó kín viền */
+.editor-wrapper-compact .tiptap-html-editor,
+.editor-wrapper-compact .ck-editor__main, 
+.editor-wrapper-compact .ck-content {
+    height: 100% !important;
+    min-height: 100% !important;
+}
+
+/* 7. Xử lý Json Editor (Bên cột phải) */
+.json-editor-group {
+    padding-top: 0;
+}
+
+.code-editor.fill-height {
+    flex-grow: 1;
+    resize: none; /* Cấm kéo giãn phá layout */
+    height: 100%;
+}
+
+.status-group-compact {
+    margin-bottom: 1rem;
+}
+.auto-gen-note {
+    margin-top: 0.5rem !important;
+    padding: 0.5rem !important;
+    margin-left: 0 !important;
+}
+
+/* 8. Footer dính ở đáy */
+.sticky-footer {
+    padding: 1rem 1.5rem;
+    background-color: #fff;
+    border-top: 1px solid var(--admin-border-color);
+    flex-shrink: 0;
+}
+
+/* ================================================================== */
+/* RESPONSIVE CHO LAPTOP NHỎ VÀ MOBILE
+/* ================================================================== */
+@media (max-width: 1024px) {
+    /* Trả lại tính năng cuộn cho màn hình nhỏ, chuyển thành 1 cột */
+    .modal-content.modal-xlarge {
+        height: auto;
+        max-height: 95vh;
+    }
+    .template-modal-grid-layout {
+        grid-template-columns: 1fr; /* Trở về 1 cột */
+        overflow-y: auto; /* Cho phép cuộn dọc */
+    }
+    .template-col-left, .template-col-right {
+        height: auto;
+        overflow: visible;
+    }
+    .code-editor.fill-height {
+        min-height: 300px; /* Cho độ cao cố định trên màn nhỏ */
+    }
+    .editor-wrapper-compact {
+        min-height: 250px;
+    }
+}

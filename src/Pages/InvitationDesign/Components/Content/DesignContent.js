@@ -60,7 +60,8 @@ import {
     FormatAlignRight as FormatAlignRightIcon,
     FileCopy as FileCopyIcon,
     Palette as PaletteIcon,
-    Brush
+    Brush,
+    Contacts as ContactsIcon
 } from '@mui/icons-material';
 // import { toast } from 'react-toastify';
 import { showErrorToast } from '../../../../Utils/toastHelper';
@@ -438,9 +439,9 @@ const CustomHtmlPreview = ({ settings, onSelectField, selectedFieldKey }) => (
     </Box>
 );
 const AVAILABLE_BLOCKS = {
-    BANNER_CAROUSEL: { key: 'bannerImages', label: 'Banner Carousel', description: 'Trình chiếu slide ảnh nổi bật ở vị trí đầu trang.', icon: <ViewCarouselIcon />, required: true, isList: true },
+    BANNER_CAROUSEL: { key: 'bannerImages', label: 'Banner Carousel', description: 'Trình chiếu slide ảnh nổi bật ở vị trí đầu trang.', icon: <ViewCarouselIcon />, isList: true },
     EVENT_DESCRIPTION: { key: 'eventDescription', label: 'Câu chuyện / Lời mời', description: 'Đoạn văn bản ngắn gửi gắm cảm xúc và lời mời chân thành.', icon: <TextFieldsIcon /> },
-    COUPLE_INFO: { key: 'coupleInfo', label: 'Thông tin Cô dâu & Chú rể', description: 'Hình ảnh, tên và đôi nét giới thiệu về hai nhân vật chính.', icon: <HeartIcon />, relatedFields: ['groomName', 'groomInfo', 'groomImageUrl', 'brideName', 'brideInfo', 'brideImageUrl'], titleKey: 'coupleTitle', subtitleKey: 'coupleSubtitle' },
+    COUPLE_INFO: { key: 'coupleInfo', label: 'Thông tin Cô dâu & Chú rể', description: 'Hình ảnh, tên và đôi nét giới thiệu về hai nhân vật chính.', icon: <HeartIcon />, relatedFields: ['groomName', 'groomInfo', 'groomImageUrl', 'brideName', 'brideInfo', 'brideImageUrl', 'coupleSeparatorImageUrl', 'groomLabel', 'brideLabel'], titleKey: 'coupleTitle', subtitleKey: 'coupleSubtitle' },
     PARTICIPANTS: { key: 'participants', label: 'Thành viên tham gia', description: 'Giới thiệu những người quan trọng (Bố mẹ, phù dâu, phù rể...).', icon: <PeopleIcon />, isList: true, titleKey: 'participantsTitle' },
     EVENT_SCHEDULE: { key: 'events', label: 'Lịch trình sự kiện', description: 'Thời gian và địa điểm cụ thể của các hoạt động trong sự kiện.', icon: <CalendarTodayIcon />, isList: true, titleKey: 'eventsTitle' },
     COUNTDOWN: { key: 'eventDate', label: 'Đếm ngược thời gian', description: 'Đồng hồ đếm ngược sinh động đến ngày tổ chức.', icon: <CalendarTodayIcon />, titleKey: 'countdownTitle' },
@@ -464,6 +465,7 @@ const SortableBlockWrapper = ({ id, blockType, children, onSelectBlock, onRemove
         position: 'relative',
         padding: isBanner ? '0' : '16px',
         marginBottom: '16px',
+        overflow: 'hidden'
     };
     const blockConfig = AVAILABLE_BLOCKS[blockType] || {};
     const isRemovable = !blockConfig.required;
@@ -660,12 +662,19 @@ const CoupleInfoPreview = ({ settings, onSelectField, selectedFieldKey, onUpdate
                             onUpdate={(newPos) => handleUpdatePos('groom', newPos)}
                         />
                     </EditableWrapper>
-                    <EditableWrapper fieldKey="groomName" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
-                        <Typography className="couple-name" sx={{ ...settings.groomNameStyle, minHeight: '30px' }}>{settings.groomName || 'Tên chú rể'}</Typography>
-                    </EditableWrapper>
-                    <EditableWrapper fieldKey="groomInfo" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
-                        <Typography className="couple-info" sx={{ ...settings.groomInfoStyle, minHeight: '40px' }}>{settings.groomInfo || 'Thông tin chú rể'}</Typography>
-                    </EditableWrapper>
+                    <div className="couple-content">
+                        {/* BỔ SUNG ĐOẠN NÀY DÀNH CHO NHÀ TRAI */}
+                        <EditableWrapper fieldKey="groomLabel" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                            <Typography sx={{ ...settings.groomLabelStyle, minHeight: '20px', mb: 0.5 }}>{settings.groomLabel || 'Nhà trai'}</Typography>
+                        </EditableWrapper>
+                        
+                        <EditableWrapper fieldKey="groomName" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                            <Typography className="couple-name" sx={{ ...settings.groomNameStyle, minHeight: '30px' }}>{settings.groomName || 'Tên chú rể'}</Typography>
+                        </EditableWrapper>
+                        <EditableWrapper fieldKey="groomInfo" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                            <Typography className="couple-info" sx={{ ...settings.groomInfoStyle, minHeight: '40px' }}>{settings.groomInfo || 'Thông tin chú rể'}</Typography>
+                        </EditableWrapper>
+                    </div>
                 </Box>
 
                 <Box className="modern-separator"><Box className="heart-wrapper"><HeartIcon sx={{ color: 'var(--color-primary)' }} /></Box></Box>
@@ -681,12 +690,19 @@ const CoupleInfoPreview = ({ settings, onSelectField, selectedFieldKey, onUpdate
                             onUpdate={(newPos) => handleUpdatePos('bride', newPos)}
                         />
                     </EditableWrapper>
-                    <EditableWrapper fieldKey="brideName" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
-                        <Typography className="couple-name" sx={{ ...settings.brideNameStyle, minHeight: '30px' }}>{settings.brideName || 'Tên cô dâu'}</Typography>
-                    </EditableWrapper>
-                    <EditableWrapper fieldKey="brideInfo" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
-                        <Typography className="couple-info" sx={{ ...settings.brideInfoStyle, minHeight: '40px' }}>{settings.brideInfo || 'Thông tin cô dâu'}</Typography>
-                    </EditableWrapper>
+                    <div className="couple-content">
+                        {/* BỔ SUNG ĐOẠN NÀY DÀNH CHO NHÀ GÁI */}
+                        <EditableWrapper fieldKey="brideLabel" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                            <Typography sx={{ ...settings.brideLabelStyle, minHeight: '20px', mb: 0.5 }}>{settings.brideLabel || 'Nhà gái'}</Typography>
+                        </EditableWrapper>
+
+                        <EditableWrapper fieldKey="brideName" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                            <Typography className="couple-name" sx={{ ...settings.brideNameStyle, minHeight: '30px' }}>{settings.brideName || 'Tên cô dâu'}</Typography>
+                        </EditableWrapper>
+                        <EditableWrapper fieldKey="brideInfo" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                            <Typography className="couple-info" sx={{ ...settings.brideInfoStyle, minHeight: '40px' }}>{settings.brideInfo || 'Thông tin cô dâu'}</Typography>
+                        </EditableWrapper>
+                    </div>
                 </Box>
             </Box>
         </Box>
@@ -1231,27 +1247,100 @@ const ContactInfoPreview = ({ settings, onSelectField, selectedFieldKey }) => (
             titleKey="contactTitle"
             titleStyle={settings.contactTitleStyle}
         />
-        <Box className="modern-contact-section">
-            <EditableWrapper fieldKey="contactGroom" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey} sx={{ p: 0 }}>
-                <Box className="modern-contact-card">
-                    <Box className="contact-icon"><PhoneIcon /></Box>
-                    <Box className="contact-info">
-                        <Typography component="h4" sx={settings.contactCardHeaderStyle}>Nhà trai</Typography>
-                        <Typography component="span" sx={settings.contactCardNameStyle}>{settings.groomName || 'Chú rể'}</Typography>
-                        <p style={settings.contactGroomStyle}>{settings.contactGroom || 'SĐT Chú rể'}</p>
-                    </Box>
+        
+        <Box className="modern-contact-section" sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
+            
+            {/* === KHỐI NHÀ TRAI / CHÚ RỂ === */}
+            <Box className="modern-contact-card" sx={{ flex: '1 1 250px', maxWidth: '350px', p: 2, borderRadius: 2, bgcolor: 'background.paper', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                <Box className="contact-icon" sx={{ mb: 2 }}><PhoneIcon color="primary" fontSize="large" /></Box>
+                <Box className="contact-info" sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    
+                    {/* Custom Text: Nhà Trai */}
+                    <EditableWrapper fieldKey="groomLabel" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                        <Typography component="h4" sx={{ ...settings.contactCardHeaderStyle, minHeight: '24px' }}>
+                            {settings.groomLabel || 'Nhà trai'}
+                        </Typography>
+                    </EditableWrapper>
+                    
+                    {/* Custom Text: Tên Chú rể */}
+                    <EditableWrapper fieldKey="groomName" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                        <Typography component="span" sx={{ ...settings.contactCardNameStyle, minHeight: '28px', display: 'block' }}>
+                            {settings.groomName || 'Tên chú rể'}
+                        </Typography>
+                    </EditableWrapper>
+
+                    {/* Custom Text: Số điện thoại + Tính năng Gọi điện */}
+                    <EditableWrapper fieldKey="contactGroom" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                        <a 
+                            href={settings.contactGroom ? `tel:${settings.contactGroom.replace(/[^0-9+]/g, '')}` : '#'} 
+                            onClick={(e) => {
+                                // Trong màn hình Builder (Editor), chúng ta ngăn trình duyệt tự động gọi điện để user có thể chỉnh sửa text.
+                                // Tính năng href="tel:" sẽ hoạt động hoàn hảo trên giao diện View thật của khách mời.
+                                e.preventDefault(); 
+                            }}
+                            style={{ textDecoration: 'none', display: 'inline-block' }}
+                        >
+                            <Typography sx={{ 
+                                ...settings.contactGroomStyle, 
+                                minHeight: '24px', 
+                                color: 'var(--color-primary, #3B82F6)',
+                                fontWeight: 'bold',
+                                transition: 'opacity 0.2s',
+                                '&:hover': { opacity: 0.8 }
+                            }}>
+                                {settings.contactGroom || 'SĐT Chú rể'}
+                            </Typography>
+                        </a>
+                    </EditableWrapper>
+
                 </Box>
-            </EditableWrapper>
-            <EditableWrapper fieldKey="contactBride" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey} sx={{ p: 0 }}>
-                <Box className="modern-contact-card">
-                    <Box className="contact-icon"><PhoneIcon /></Box>
-                    <Box className="contact-info">
-                        <Typography component="h4" sx={settings.contactCardHeaderStyle}>Nhà gái</Typography>
-                        <Typography component="span" sx={settings.contactCardNameStyle}>{settings.brideName || 'Cô dâu'}</Typography>
-                        <p style={settings.contactBrideStyle}>{settings.contactBride || 'SĐT Cô dâu'}</p>
-                    </Box>
+            </Box>
+
+            {/* === KHỐI NHÀ GÁI / CÔ DÂU === */}
+            <Box className="modern-contact-card" sx={{ flex: '1 1 250px', maxWidth: '350px', p: 2, borderRadius: 2, bgcolor: 'background.paper', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                <Box className="contact-icon" sx={{ mb: 2 }}><PhoneIcon color="secondary" fontSize="large" /></Box>
+                <Box className="contact-info" sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    
+                    {/* Custom Text: Nhà Gái */}
+                    <EditableWrapper fieldKey="brideLabel" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                        <Typography component="h4" sx={{ ...settings.contactCardHeaderStyle, minHeight: '24px' }}>
+                            {settings.brideLabel || 'Nhà gái'}
+                        </Typography>
+                    </EditableWrapper>
+                    
+                    {/* Custom Text: Tên Cô dâu */}
+                    <EditableWrapper fieldKey="brideName" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                        <Typography component="span" sx={{ ...settings.contactCardNameStyle, minHeight: '28px', display: 'block' }}>
+                            {settings.brideName || 'Tên cô dâu'}
+                        </Typography>
+                    </EditableWrapper>
+
+                    {/* Custom Text: Số điện thoại + Tính năng Gọi điện */}
+                    <EditableWrapper fieldKey="contactBride" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
+                        <a 
+                            href={settings.contactBride ? `tel:${settings.contactBride.replace(/[^0-9+]/g, '')}` : '#'} 
+                            onClick={(e) => {
+                                // Tương tự khối nhà trai: chặn gọi điện trong màn Editor
+                                e.preventDefault();
+                            }}
+                            style={{ textDecoration: 'none', display: 'inline-block' }}
+                        >
+                            <Typography sx={{ 
+                                ...settings.contactBrideStyle, 
+                                minHeight: '24px', 
+                                color: 'var(--color-primary, #3B82F6)',
+                                fontWeight: 'bold',
+                                transition: 'opacity 0.2s',
+                                '&:hover': { opacity: 0.8 }
+                            }}>
+                                {settings.contactBride || 'SĐT Cô dâu'}
+                            </Typography>
+                        </a>
+                    </EditableWrapper>
+
                 </Box>
-            </EditableWrapper>
+            </Box>
+
         </Box>
     </Box>
 );
@@ -1873,6 +1962,8 @@ const SETTINGS_META = {
     rsvpSubtitle: { label: 'Tiêu đề phụ RSVP', type: 'story-text' },
     customHtmlContent: { label: 'Nội dung HTML tùy chỉnh', type: 'custom-html', description: 'Sử dụng trình soạn thảo bên dưới để tạo nội dung độc đáo cho riêng bạn.' },
     customHtmlTitle: { label: 'Tiêu đề khối tùy chỉnh', type: 'story-text' },
+    groomLabel: { label: 'Thành viên 1 (VD: Nhà trai)', type: 'story-text' },
+    brideLabel: { label: 'Thành viên 2 (VD: Nhà gái)', type: 'story-text' },
 };
 const StyledTextPropertyEditor = ({ fieldKey, settings, onUpdate, customFonts }) => {
     const item = {
@@ -2136,6 +2227,7 @@ const SettingsPropertyEditor = ({ selectedKey, settings, setSettings, customFont
                     rows={meta.type === 'textarea' ? 4 : 1}
                     value={value}
                     onChange={(e) => handleUpdate(selectedKey, { content: e.target.value })}
+                    onFocus={(e) => e.target.select()}
                 />;
             case 'select':
                 return <FormControl fullWidth>
@@ -3232,6 +3324,7 @@ const TextPropertyEditor = ({ item, onUpdate, customFonts }) => {
                 value={item.content}
                 onChange={(e) => onUpdate(item.id, { content: e.target.value.slice(0, MAX_TEXT_LENGTH) }, false)}
                 onBlur={() => onUpdate(item.id, {}, true)}
+                onFocus={(e) => e.target.select()}
                 fullWidth margin="none" size="small" variant="outlined" multiline rows={3}
                 inputProps={{ maxLength: MAX_TEXT_LENGTH }}
             />
@@ -3808,24 +3901,97 @@ const processTemplate = (templateData) => {
         }))
     }));
 };
-const TemplatePickerIntegrated = ({ templates, onSelectTemplate }) => (
-    <Box>
-        <Typography variant="h6" gutterBottom>Chọn mẫu thiệp</Typography>
-        <Grid container spacing={2} sx={{ pt: 1, maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
-            {templates.length === 0 && (<Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Grid>)}
-            {templates.map(template => (
-                <Grid item key={template._id} xs={12}>
-                    <Card onClick={() => onSelectTemplate(template._id)} sx={{ cursor: 'pointer', '&:hover': { boxShadow: 4, transform: 'scale(1.02)' }, transition: 'all 0.2s ease' }}>
-                        <CardMedia component="img" height="150" image={template.imgSrc || 'https://placehold.co/400x400/EBF1FB/B0C7EE?text=No+Image'} alt={template.title} sx={{ objectFit: 'cover' }} />
-                        <CardContent sx={{ p: 1.5 }}>
-                            <Typography variant="body2" fontWeight="500">{template.title}</Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            ))}
-        </Grid>
-    </Box>
-);
+const TemplatePickerIntegrated = ({ templates, onSelectTemplate }) => {
+    // Thêm state để quản lý thanh tìm kiếm
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Lọc danh sách mẫu thiệp dựa trên từ khóa
+    const filteredTemplates = templates.filter(template =>
+        template.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <Box>
+            <Typography variant="h6" gutterBottom>Chọn mẫu thiệp</Typography>
+            
+            {/* Thanh tìm kiếm */}
+            <TextField
+                fullWidth
+                size="small"
+                placeholder="Tìm kiếm mẫu thiệp..."
+                variant="outlined"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{ mb: 1.5 }}
+            />
+
+            {/* Sử dụng CSS Grid thay vì MUI Grid để ép cứng 2 cột tuyệt đối */}
+            <Box sx={{ 
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)', // Ép 2 cột chia đều không gian
+                gap: 1.5, // Khoảng cách giữa các cột/hàng (tương đương spacing 1.5 của MUI)
+                pt: 1, 
+                maxHeight: 'calc(100vh - 170px)', 
+                overflowY: 'auto',
+                px: 0.5, // Thêm chút padding ngang để khi hover (box-shadow) không bị cắt lẹm
+                pb: 2
+            }}>
+                {filteredTemplates.length === 0 ? (
+                    // Trạng thái Empty: Cho chiếm trọn 2 cột (span 2)
+                    <Box sx={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'center', p: 4, flexDirection: 'column', alignItems: 'center' }}>
+                        {templates.length === 0 ? (
+                            <CircularProgress />
+                        ) : (
+                            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                Không tìm thấy mẫu "{searchTerm}"
+                            </Typography>
+                        )}
+                    </Box>
+                ) : (
+                    filteredTemplates.map(template => (
+                        <Card 
+                            key={template._id}
+                            onClick={() => onSelectTemplate(template._id)} 
+                            sx={{ 
+                                cursor: 'pointer', 
+                                '&:hover': { boxShadow: 4, transform: 'scale(1.02)' }, 
+                                transition: 'all 0.2s ease',
+                                height: '100%', 
+                                display: 'flex', 
+                                flexDirection: 'column' 
+                            }}
+                        >
+                            <CardMedia 
+                                component="img" 
+                                height="120" 
+                                image={template.imgSrc || 'https://placehold.co/400x400/EBF1FB/B0C7EE?text=No+Image'} 
+                                alt={template.title} 
+                                sx={{ objectFit: 'cover' }} 
+                            />
+                            <CardContent sx={{ p: 1, '&:last-child': { pb: 1 }, flexGrow: 1 }}>
+                                <Typography 
+                                    variant="body2" 
+                                    fontWeight="500"
+                                    sx={{ 
+                                        fontSize: '0.8rem',
+                                        lineHeight: 1.3,
+                                        // Giới hạn hiển thị tối đa 2 dòng, phần thừa biến thành "..."
+                                        display: '-webkit-box', 
+                                        WebkitLineClamp: 2, 
+                                        WebkitBoxOrient: 'vertical', 
+                                        overflow: 'hidden' 
+                                    }}
+                                >
+                                    {template.title}
+                                </Typography>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </Box>
+        </Box>
+    );
+};
 const SortablePageItem = ({ id, page, isSelected, onSelect, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
     const style = {
@@ -3917,6 +4083,44 @@ const WeddingInvitationEditor = () => {
             [key]: value
         }));
     }, []);
+    // =====================================================================
+    // BẮT ĐẦU SỬA: Hàm Intercept để bắt sự kiện thay đổi loại thiệp
+    // =====================================================================
+    const handleInvitationTypeChange = useCallback((updater) => {
+        setEventSettings(prevSettings => {
+            const newSettings = typeof updater === 'function' ? updater(prevSettings) : updater;
+            
+            // LOGIC NGHIỆP VỤ: Nếu người dùng thay đổi dropdown loại thiệp
+            if (newSettings.invitationType !== prevSettings.invitationType) {
+                let defaultBlocksForType = [];
+                
+                switch (newSettings.invitationType) {
+                    case 'Thiệp cưới':
+                        defaultBlocksForType = ['BANNER_CAROUSEL', 'EVENT_DESCRIPTION', 'COUPLE_INFO', 'PARTICIPANTS', 'EVENT_SCHEDULE', 'COUNTDOWN', 'LOVE_STORY', 'GALLERY', 'VIDEO', 'CONTACT_INFO', 'QR_CODES', 'RSVP', 'CUSTOM_HTML'];
+                        break;
+                    case 'Thiệp sự kiện chung':
+                        defaultBlocksForType = ['EVENT_DESCRIPTION', 'GALLERY', 'VIDEO'];
+                        break;
+                    case 'Thiệp cảm ơn':
+                    case 'Thiệp chúc mừng':
+                        defaultBlocksForType = []; // Reset xóa sạch các khối
+                        break;
+                }
+                
+                // 1. Cập nhật settings
+                newSettings.blocksOrder = defaultBlocksForType;
+                
+                // 2. Cập nhật state UI ngay lập tức
+                setEventBlocks(defaultBlocksForType.map(type => ({ id: uuidv4(), type })));
+                
+                toast.info(`Đã chuyển sang ${newSettings.invitationType}. Khởi tạo lại các khối.`);
+            }
+            return newSettings;
+        });
+    }, []);
+    // =====================================================================
+    // KẾT THÚC SỬA
+    // =====================================================================
     const handleNavigateBack = () => {
         // history.index > 0 nghĩa là đã có thay đổi chưa lưu
         if (history.index > 0 && !saving) {
@@ -3959,6 +4163,10 @@ const WeddingInvitationEditor = () => {
         eventDescription: '',
         groomNameStyle: { fontFamily: 'Playfair Display', fontSize: 28, color: '#4a4a68', fontWeight: '600' },
         brideNameStyle: { fontFamily: 'Playfair Display', fontSize: 28, color: '#4a4a68', fontWeight: '600' },
+        groomLabel: 'Nhà trai',
+        brideLabel: 'Nhà gái',
+        groomLabelStyle: { fontFamily: 'Inter', fontSize: 14, color: '#777777', textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center' },
+        brideLabelStyle: { fontFamily: 'Inter', fontSize: 14, color: '#777777', textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center' },
         eventDescriptionStyle: { fontFamily: 'Inter', fontSize: 18, color: '#555555', textAlign: 'center' },
         groomInfoStyle: { fontFamily: 'Inter', fontSize: 16, color: '#555555', textAlign: 'center' },
         brideInfoStyle: { fontFamily: 'Inter', fontSize: 16, color: '#555555', textAlign: 'center' },
@@ -4141,15 +4349,23 @@ const WeddingInvitationEditor = () => {
                     return;
                 } else {
                     setLoading(false);
+                    // --- BẮT ĐẦU THÊM DÒNG NÀY ---
+                    setActiveTool('create-new'); // Tự động bật tab tạo mới khi không có template nào
+                    // --- KẾT THÚC THÊM DÒNG NÀY ---
                     return;
                 }
                 const contentWithDefaults = (invitationData.content || []).map(page => ({
                     ...page,
                     items: (page.items || []).map(item => ({ ...defaultItemProps, ...item }))
                 }));
+
                 if (contentWithDefaults.length === 0) {
                     console.warn("Dữ liệu không có trang nào. Hiển thị canvas trống.");
+                    // --- BẮT ĐẦU THÊM DÒNG NÀY ---
+                    setActiveTool('create-new'); // Tự động bật tab tạo mới nếu dữ liệu rỗng
+                    // --- KẾT THÚC THÊM DÒNG NÀY ---
                 }
+                
                 setHistory({ stack: [contentWithDefaults], index: 0 });
                 setCurrentPageId(contentWithDefaults[0]?.id || null);
                 setSlug(invitationData.slug || '');
@@ -4203,49 +4419,67 @@ const WeddingInvitationEditor = () => {
             setLoading(true);
         }
     }, [invitationId, templateId, backendTemplates, navigate]);
-    const { blocksOrder, invitationType } = eventSettings;
-    useEffect(() => {
-        const initializeBlocks = () => {
-            const order = blocksOrder || []; // Đảm bảo order là mảng
-            const defaultOrder = [
-                'BANNER_CAROUSEL', 'EVENT_DESCRIPTION', 'COUPLE_INFO',
-                'PARTICIPANTS', 'EVENT_SCHEDULE', 'COUNTDOWN',
-                'LOVE_STORY', 'GALLERY', 'VIDEO', 'CONTACT_INFO', 'QR_CODES', 'RSVP', 'CUSTOM_HTML'
-            ];
-            let applicableBlockTypes = defaultOrder;
+    // =====================================================================
+    // BẮT ĐẦU SỬA: Tách biệt logic Init data và ngăn chặn re-render vô hạn
+    // =====================================================================
+    const isBlocksInitializedRef = useRef(false);
 
-            if (invitationType && invitationType !== 'Thiệp cưới') { 
-                applicableBlockTypes = [
-                    'EVENT_DESCRIPTION',
-                    'GALLERY',
-                    'VIDEO',
-                ];
-            }
-            
-            let initialBlocks;
-            if (order && order.length > 0) {
-                // Lọc các block từ `order` dựa trên `applicableBlockTypes`
-                initialBlocks = order
-                    .filter(type => applicableBlockTypes.includes(type))
-                    .map(type => ({ id: uuidv4(), type }));
+    // Reset cờ nếu user chuyển sang chỉnh sửa template/thiệp khác
+    useEffect(() => {
+        isBlocksInitializedRef.current = false;
+    }, [templateId, invitationId]);
 
-                // Thêm bất kỳ block nào còn thiếu mà không có trong `order`
-                applicableBlockTypes.forEach(type => {
-                    if (!order.includes(type)) {
-                        initialBlocks.push({ id: uuidv4(), type });
-                    }
-                });
+    useEffect(() => {
+        // NẾU ĐÃ KHỞI TẠO XONG THÌ KHÔNG CHẠY LẠI (Tránh lỗi tạo mới UUID liên tục khi kéo thả)
+        if (isBlocksInitializedRef.current) return; 
+        if (!eventSettings || !eventSettings.invitationType) return;
 
-            } else {
-                // Nếu không có `order` (ví dụ: dữ liệu cũ), dùng `applicableBlockTypes`
-                initialBlocks = applicableBlockTypes.map(type => ({ id: uuidv4(), type }));
-            }
+        const order = eventSettings.blocksOrder || [];
+        let defaultBlocksForType = [];
+        
+        switch (eventSettings.invitationType) {
+            case 'Thiệp cưới':
+                defaultBlocksForType = ['BANNER_CAROUSEL', 'EVENT_DESCRIPTION', 'COUPLE_INFO', 'PARTICIPANTS', 'EVENT_SCHEDULE', 'COUNTDOWN', 'LOVE_STORY', 'GALLERY', 'VIDEO', 'CONTACT_INFO', 'QR_CODES', 'RSVP', 'CUSTOM_HTML'];
+                break;
+            case 'Thiệp sự kiện chung':
+                defaultBlocksForType = ['EVENT_DESCRIPTION', 'GALLERY', 'VIDEO'];
+                break;
+            case 'Thiệp cảm ơn':
+            case 'Thiệp chúc mừng':
+                defaultBlocksForType = []; // Mặc định không có khối
+                break;
+            default:
+                defaultBlocksForType = [];
+                break;
+        }
 
-            setEventBlocks(initialBlocks);
-        };
+        let initialBlocks = [];
+        if (order && order.length > 0) {
+            // Tôn trọng dữ liệu cũ đã lưu từ server
+            initialBlocks = order.map(type => ({ id: uuidv4(), type }));
+            // Bổ sung các khối default mới nếu hệ thống mới update thêm
+            defaultBlocksForType.forEach(type => {
+                if (!order.includes(type)) {
+                    initialBlocks.push({ id: uuidv4(), type });
+                }
+            });
+        } else {
+            // Thiệp mới tinh -> Dùng default
+            initialBlocks = defaultBlocksForType.map(type => ({ id: uuidv4(), type }));
+        }
 
-        initializeBlocks();
-    }, [blocksOrder, invitationType]);
+        setEventBlocks(initialBlocks);
+        
+        // Đồng bộ ngược lại cho Settings nếu là thiệp mới tinh
+        if (order.length === 0 && defaultBlocksForType.length > 0) {
+            setEventSettings(prev => ({ ...prev, blocksOrder: defaultBlocksForType }));
+        }
+
+        isBlocksInitializedRef.current = true; // Đánh dấu đã khởi tạo xong
+    }, [eventSettings.blocksOrder, eventSettings.invitationType]);
+    // =====================================================================
+    // KẾT THÚC SỬA
+    // =====================================================================
 
     // --- START: SCROLL FOCUS LOGIC ---
     const handleScrollFocus = useCallback(() => {
@@ -4422,7 +4656,7 @@ const WeddingInvitationEditor = () => {
                     el.style.whiteSpace = 'pre-wrap';
                     el.style.wordBreak = 'break-word';
 
-                    el.textContent = item.content || '';
+                    el.textContent = item.isGuestName ? '[Tên Khách Mời]' : (item.content || '');
 
                 } else if (item.type === 'image' && item.url) {
                 // =================================================================
@@ -4452,7 +4686,41 @@ const WeddingInvitationEditor = () => {
             await new Promise(resolve => setTimeout(resolve, 200));
 
             let capturedCanvas = null;
+
+            // 🌟 BẮT ĐẦU FIX: Kỹ thuật Proxy chặn lỗi oklch của html2canvas 🌟
+            const originalGetComputedStyle = window.getComputedStyle;
+            const originalGetPropertyValue = CSSStyleDeclaration.prototype.getPropertyValue;
+
             try {
+                // 1. Ghi đè window.getComputedStyle
+                window.getComputedStyle = function(el, pseudoElt) {
+                    const style = originalGetComputedStyle(el, pseudoElt);
+                    return new Proxy(style, {
+                        get(target, prop) {
+                            const value = target[prop];
+                            // Tránh lỗi Illegal invocation khi gọi các hàm native
+                            if (typeof value === 'function') {
+                                return value.bind(target);
+                            }
+                            // Nếu phát hiện mã màu html2canvas không hỗ trợ, trả về màu an toàn
+                            if (typeof value === 'string' && (value.includes('oklch') || value.includes('oklab') || value.includes('color('))) {
+                                return 'rgba(0, 0, 0, 0)'; 
+                            }
+                            return value;
+                        }
+                    });
+                };
+
+                // 2. Ghi đè thêm getPropertyValue để bảo mật 2 lớp
+                CSSStyleDeclaration.prototype.getPropertyValue = function(prop) {
+                    const value = originalGetPropertyValue.call(this, prop);
+                    if (value && typeof value === 'string' && (value.includes('oklch') || value.includes('oklab') || value.includes('color('))) {
+                        return 'rgba(0, 0, 0, 0)';
+                    }
+                    return value;
+                };
+
+                // Gọi html2canvas như bình thường
                 capturedCanvas = await html2canvas(container, {
                     scale: 2,
                     useCORS: true,
@@ -4460,10 +4728,18 @@ const WeddingInvitationEditor = () => {
                     backgroundColor: null,
                     logging: false,
                 });
+
             } catch (error) {
                 console.error("Lỗi khi chụp ảnh thumbnail:", error);
             } finally {
-                document.body.removeChild(container);
+                // 🌟 QUAN TRỌNG: LUÔN LUÔN khôi phục lại hàm gốc của trình duyệt sau khi render xong 🌟
+                window.getComputedStyle = originalGetComputedStyle;
+                CSSStyleDeclaration.prototype.getPropertyValue = originalGetPropertyValue;
+                
+                // Dọn rác
+                if (document.body.contains(container)) {
+                    document.body.removeChild(container);
+                }
             }
 
             return capturedCanvas;
@@ -4925,6 +5201,9 @@ const WeddingInvitationEditor = () => {
 
             // Khởi tạo dữ liệu mặc định cho từng loại khối
             switch (blockType) {
+                case 'BANNER_CAROUSEL': // <-- THÊM CASE NÀY
+                    if (!newSettings.bannerImages) newSettings.bannerImages = [];
+                    break;
                 case 'EVENT_DESCRIPTION':
                     newSettings.eventDescription = "Nhấp để thêm câu chuyện của bạn...";
                     break;
@@ -5185,47 +5464,116 @@ const WeddingInvitationEditor = () => {
         img.src = url;
     }, [pages, getNextZIndex, setPages, currentPageId]);
     const handleUserImageFileUpload = useCallback(async (files) => {
-    if (!files || files.length === 0) return;
+        if (!files || files.length === 0) return;
 
-    const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-        formData.append(`file_${i}`, files[i]);
-    }
-
-    setIsUploading(true);
-    try {
-        const response = await api.post('/admin/assets/upload-batch', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
-
-        const urlMap = response.data.urls;
-        const newImages = Object.values(urlMap).map(url => ({
-            id: uuidv4(),
-            name: url.split('/').pop(),
-            url: url
-        }));
-
-        // 1. Cập nhật danh sách ảnh ở Sidebar (Giữ nguyên logic cũ)
-        setUserUploadedImages(prev => [...newImages, ...prev]);
-        
-        // 2. === LOGIC MỚI: Tự động thêm ảnh vào Canvas ===
-        if (currentPageId && newImages.length > 0) {
-            newImages.forEach(img => {
-                // Gọi hàm thêm ảnh vào canvas cho từng ảnh vừa upload
-                addImageToCanvas(img.url, currentPageId);
-            });
-            toast.success(`Đã tải lên và thêm ${newImages.length} ảnh vào thiết kế.`);
-        } else {
-            toast.success(`Đã tải lên thành công ${newImages.length} ảnh (Vui lòng chọn trang để thêm ảnh).`);
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append(`file_${i}`, files[i]);
         }
 
-    } catch (error) {
-        console.error("Lỗi khi tải ảnh lên:", error.response || error);
-        toast.error(error.response?.data?.message || 'Tải ảnh lên thất bại.');
-    } finally {
-        setIsUploading(false);
-    }
-}, [currentPageId, addImageToCanvas]);
+        setIsUploading(true);
+        try {
+            const response = await api.post('/admin/assets/upload-batch', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            const urlMap = response.data.urls;
+            const newImages = Object.values(urlMap).map(url => ({
+                id: uuidv4(),
+                name: url.split('/').pop(),
+                url: url
+            }));
+
+            // 1. Cập nhật danh sách ảnh ở Sidebar (Giữ nguyên logic cũ)
+            setUserUploadedImages(prev => [...newImages, ...prev]);
+            
+            // 2. === LOGIC MỚI: XỬ LÝ BATCH ADD LÊN CANVAS ===
+            if (currentPageId && newImages.length > 0) {
+                const pageForAdding = pages.find(p => p.id === currentPageId);
+                if (!pageForAdding) return;
+
+                // Tạo mảng Promise để load kích thước toàn bộ ảnh
+                const loadPromises = newImages.map((imgData, index) => {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.crossOrigin = "anonymous";
+                        img.onload = () => {
+                            const ratio = img.width / img.height;
+                            let newWidth = Math.min(img.width, pageForAdding.canvasWidth * 0.25);
+                            let newHeight = newWidth / ratio;
+                            if (newHeight > pageForAdding.canvasHeight * 0.25) {
+                                newHeight = pageForAdding.canvasHeight * 0.25;
+                                newWidth = newHeight * ratio;
+                            }
+
+                            // Hiệu ứng xếp chồng (cascade): Mỗi ảnh lệch nhau 20px để không bị đè khít
+                            const offset = index * 20; 
+                            const x = (pageForAdding.canvasWidth / 2) - (newWidth / 2) + offset;
+                            const y = (pageForAdding.canvasHeight / 2) - (newHeight / 2) + offset;
+
+                            resolve({
+                                ...defaultItemProps,
+                                id: uuidv4(),
+                                url: imgData.url,
+                                x: Math.max(0, Math.min(x, pageForAdding.canvasWidth - 50)), // Không để ảnh văng ra ngoài canvas
+                                y: Math.max(0, Math.min(y, pageForAdding.canvasHeight - 50)),
+                                width: newWidth,
+                                height: newHeight,
+                                type: 'image',
+                                // zIndex sẽ được tính gộp lúc update batch để không bị trùng
+                            });
+                        };
+                        img.onerror = () => {
+                            toast.error(`Không thể tải hình ảnh từ: ${imgData.url}`);
+                            resolve(null); // Bỏ qua ảnh lỗi, không break toàn bộ Promise.all
+                        };
+                        img.src = imgData.url;
+                    });
+                });
+
+                // Đợi tất cả ảnh load xong
+                const loadedItems = (await Promise.all(loadPromises)).filter(item => item !== null);
+
+                if (loadedItems.length > 0) {
+                    setActiveTool('default');
+
+                    // Gọi setPages ĐÚNG 1 LẦN để update state và lưu 1 bước Undo duy nhất
+                    setPages(currentPages => {
+                        return currentPages.map(page => {
+                            if (page.id !== currentPageId) return page;
+
+                            // Lấy zIndex cao nhất hiện tại của trang
+                            let currentMaxZ = BASE_Z_INDEX;
+                            if (page.items.length > 0) {
+                                currentMaxZ = Math.max(...page.items.map(i => i.zIndex));
+                            }
+
+                            // Cấp phát zIndex tuần tự cho mảng ảnh mới
+                            const itemsWithZIndex = loadedItems.map((item, idx) => ({
+                                ...item,
+                                zIndex: currentMaxZ + 1 + idx
+                            }));
+
+                            return { ...page, items: [...page.items, ...itemsWithZIndex] };
+                        });
+                    }, true);
+
+                    // Focus vào ảnh cuối cùng được thêm vào
+                    setSelectedItemId(loadedItems[loadedItems.length - 1].id);
+                    toast.success(`Đã tải lên và thêm ${loadedItems.length} ảnh vào thiết kế.`);
+                }
+            } else {
+                toast.success(`Đã tải lên thành công ${newImages.length} ảnh (Vui lòng chọn trang để thêm ảnh).`);
+            }
+
+        } catch (error) {
+            console.error("Lỗi khi tải ảnh lên:", error.response || error);
+            toast.error(error.response?.data?.message || 'Tải ảnh lên thất bại.');
+        } finally {
+            setIsUploading(false);
+        }
+    // NHỚ CẬP NHẬT DEPENDENCY ARRAY ĐỂ REACT HOOK KHÔNG BỊ CŨ
+    }, [currentPageId, pages, setPages]);
     const handleDeleteUserImages = useCallback((imageIdsToDelete) => {
         setUserUploadedImages(prev => prev.filter(img => !imageIdsToDelete.includes(img.id)));
         toast.success(`Đã xóa ${imageIdsToDelete.length} ảnh khỏi danh sách.`);
@@ -5427,11 +5775,12 @@ const WeddingInvitationEditor = () => {
         if (itemData.type === 'image') {
             addImageToCanvas(itemData.url, targetPageId); 
         } else if (itemData.type === 'text') {
-            addTextToCanvas(itemData.content, targetPageId);
+            // SỬA DÒNG DƯỚI ĐÂY
+            addTextToCanvas(itemData.content, targetPageId, itemData.isGuestName);
         }
     };
 
-    const addTextToCanvas = useCallback((content, targetPageId) => {
+    const addTextToCanvas = useCallback((content, targetPageId, isGuestName = false) => {
         const pageForAdding = pages.find(p => p.id === targetPageId);
         if (!pageForAdding) return;
         
@@ -5453,7 +5802,8 @@ const WeddingInvitationEditor = () => {
             fontSize: 24, 
             type: 'text', 
             zIndex: getNextZIndex(),
-            isCustomWidth: false // <-- THÊM DÒNG NÀY ĐỂ BẬT AUTO-FIT MẶC ĐỊNH
+            isCustomWidth: false,
+            isGuestName: isGuestName // BỔ SUNG DÒNG NÀY
         };
 
         setPages(currentPages => currentPages.map(page => page.id === targetPageId ? { ...page, items: [...page.items, newTextItem] } : page), true);
@@ -5471,13 +5821,10 @@ const WeddingInvitationEditor = () => {
         if (itemData.type === 'image' && itemData.url) {
             addImageToCanvas(itemData.url, currentPageId);
         } else if (itemData.type === 'text' && itemData.content) {
-            // Sử dụng lại logic từ hàm handleAddText cũ
-            const newTextItem = { ...defaultItemProps, id: uuidv4(), content: itemData.content, x: currentPage.canvasWidth / 2 - 125, y: currentPage.canvasHeight / 2 - 25, width: 250, height: 50, fontFamily: 'Arial', fontSize: 24, color: '#333333', isEditing: true, type: 'text', zIndex: getNextZIndex() };
-            setPages(currentPages => currentPages.map(page => page.id === currentPageId ? { ...page, items: [...page.items, newTextItem] } : page), true);
-            setSelectedItemId(newTextItem.id);
-            setActiveTool('default');
+            // SỬA ĐOẠN NÀY ĐỂ NHẬN isGuestName
+            addTextToCanvas(itemData.content, currentPageId, itemData.isGuestName); 
         }
-    }, [currentPageId, currentPage, addImageToCanvas, getNextZIndex, setPages]);
+    }, [currentPageId, currentPage, addImageToCanvas, addTextToCanvas, getNextZIndex, setPages]);
 
 
     const activeItem = currentPage ? currentItems.find(i => i.id === selectedItemId) : null;
@@ -5519,7 +5866,7 @@ const WeddingInvitationEditor = () => {
             </CanvasContainer>
         );
     };
-
+    
     const renderSecondarySidebar = () => {
         if (isScrolledToSettings) {
             if (selectedSettingField && selectedSettingField !== 'invitationType') { // Cập nhật điều kiện
@@ -5549,7 +5896,7 @@ const WeddingInvitationEditor = () => {
                         <SettingsPropertyEditor
                             selectedKey="invitationType"
                             settings={eventSettings}
-                            setSettings={setEventSettings}
+                            setSettings={handleInvitationTypeChange}
                             customFonts={customFonts}
                             itemToEdit={itemToEdit}
                             setItemToEdit={setItemToEdit}
@@ -5816,6 +6163,16 @@ const WeddingInvitationEditor = () => {
                                                 <AddCircleOutlineIcon />
                                                 <ListItemText primary="Tạo mới" primaryTypographyProps={{ variant: 'caption' }} />
                                             </ListItemButton>
+                                            <DraggableSidebarItem data={{ id: 'sidebar-guest-name-item', type: 'text', content: '[Tên Khách Mời]', isGuestName: true }}>
+                                                <ListItemButton 
+                                                    sx={{ flexDirection: 'column', px: 1, mb: 1, cursor: 'grab' }} 
+                                                    component="div" 
+                                                    onClick={() => handleSidebarItemClick({ type: 'text', content: '[Tên Khách Mời]', isGuestName: true })}
+                                                >
+                                                    <ContactsIcon />
+                                                    <ListItemText primary="Tên Khách" primaryTypographyProps={{ variant: 'caption', textAlign: 'center' }} />
+                                                </ListItemButton>
+                                            </DraggableSidebarItem>
                                             <DraggableSidebarItem data={{ id: 'sidebar-text-item', type: 'text', content: 'Nội dung mới' }}>
                                                 <ListItemButton 
                                                     onClick={() => handleSidebarItemClick({ type: 'text', content: 'Nội dung mới' })} 

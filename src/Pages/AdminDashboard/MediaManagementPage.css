@@ -1,0 +1,127 @@
+/* src/Pages/AdminDashboard/MediaManagementPage.css */
+
+.media-management-header {
+    margin-bottom: 1.5rem;
+}
+
+.media-management-subtitle {
+    color: #6c757d;
+    margin: 0;
+}
+
+/* Kế thừa grid layout nhưng có thể tinh chỉnh lại gap nếu cần */
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.media-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #888;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+
+.media-empty-icon {
+    opacity: 0.2;
+    margin-bottom: 1rem;
+}
+
+.media-card {
+    background-color: #fff;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.media-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: #d1d5db;
+}
+
+.media-card__image-wrapper {
+    position: relative;
+    height: 180px;
+    background-color: #f4f4f5; /* Nền xám nhạt để làm nổi bật ảnh PNG trong suốt */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.media-card__image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Giữ nguyên tỷ lệ ảnh thật, không bị cắt xén */
+    padding: 0.5rem;
+}
+
+.media-card__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.media-card:hover .media-card__overlay {
+    opacity: 1;
+}
+
+.media-action-btn {
+    background: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.2s;
+}
+
+.media-action-btn:hover {
+    transform: scale(1.1);
+    background-color: #f8f9fa;
+}
+
+.media-action-btn.delete:hover {
+    color: var(--admin-red, #dc3545);
+}
+
+.media-card__info {
+    padding: 0.75rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.media-card__name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #374151;
+    margin: 0 0 0.25rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.media-card__size {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin: 0;
+}

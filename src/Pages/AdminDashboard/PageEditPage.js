@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
     Save, ArrowLeft, Image as ImageIcon, LayoutTemplate, 
     Settings, Search, Tag, Globe, FileText, Eye,
-    Package, X, Check, ChevronDown, ChevronUp 
+    Package, X, Check, ChevronDown, ChevronUp, Plus, Trash2 // Thêm Plus và Trash2
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import api from '../../services/api'; 
@@ -20,12 +20,14 @@ const PageEditPage = () => {
     const [saving, setSaving] = useState(false);
     
     const [categories, setCategories] = useState([]);
-    // const [templates, setTemplates] = useState([]); 
-
+    
     const [allProducts, setAllProducts] = useState([]);
     const [productSearch, setProductSearch] = useState('');
     const [relatedProducts, setRelatedProducts] = useState([]);
     const [isProductListExpanded, setIsProductListExpanded] = useState(false);
+
+    // STATE MỚI: Quản lý các khối chèn nội tuyến (Injected Blocks)
+    const [injectedBlocks, setInjectedBlocks] = useState([]);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -71,14 +73,11 @@ const PageEditPage = () => {
             try {
                 const [catRes, prodRes] = await Promise.all([
                     api.get('/admin/page-categories'),
-                    // api.get('/admin/templates'),
                     api.get('/admin/products') 
                 ]);
 
                 if (catRes.data?.data) setCategories(catRes.data.data);
-                // if (tempRes.data?.data) setTemplates(tempRes.data.data);
                 
-                // Xử lý response sản phẩm linh hoạt
                 const pData = prodRes.data?.data || prodRes.data;
                 if (Array.isArray(pData)) setAllProducts(pData);
 
@@ -88,7 +87,6 @@ const PageEditPage = () => {
                     
                     if (page) {
                         let initialContent = page.content || '';
-                        // Parse JSON content nếu cần
                         if (typeof initialContent === 'string' && initialContent.startsWith('"')) {
                             try { initialContent = JSON.parse(initialContent); } catch (e) {}
                         }
@@ -110,17 +108,16 @@ const PageEditPage = () => {
                             }
                         });
 
-                        if (page.relatedProducts && Array.isArray(page.relatedProducts)) {
-                            // Logic: Nếu mảng chứa String (ID), ta tìm object tương ứng trong pData
-                            // Nếu mảng đã chứa Object (do backend sửa), ta giữ nguyên
-                            const mappedProducts = page.relatedProducts.map(item => {
-                                if (typeof item === 'string') {
-                                    // Tìm trong danh sách allProducts đã tải
-                                    return pData.find(p => p._id === item);
-                                }
-                                return item;
-                            }).filter(item => item !== undefined); // Lọc bỏ các item null/undefined nếu không tìm thấy
+                        // Set dữ liệu injected blocks từ API
+                        if (page.injectedBlocks && Array.isArray(page.injectedBlocks)) {
+                            setInjectedBlocks(page.injectedBlocks);
+                        }
 
+                        if (page.relatedProducts && Array.isArray(page.relatedProducts)) {
+                            const mappedProducts = page.relatedProducts.map(item => {
+                                if (typeof item === 'string') return pData.find(p => p._id === item);
+                                return item;
+                            }).filter(item => item !== undefined); 
                             setRelatedProducts(mappedProducts);
                         }
                     }
@@ -180,6 +177,25 @@ const PageEditPage = () => {
         setRelatedProducts(relatedProducts.filter(p => p._id !== productId));
     };
 
+    // --- INJECTED BLOCKS HANDLERS ---
+    const handleAddInjectedBlock = () => {
+        setInjectedBlocks([
+            ...injectedBlocks,
+            { type: 'product', position: 2, productId: '', bannerImg: '', bannerLink: '' }
+        ]);
+    };
+
+    const handleUpdateInjectedBlock = (index, field, value) => {
+        const newBlocks = [...injectedBlocks];
+        newBlocks[index][field] = value;
+        setInjectedBlocks(newBlocks);
+    };
+
+    const handleRemoveInjectedBlock = (index) => {
+        const newBlocks = injectedBlocks.filter((_, i) => i !== index);
+        setInjectedBlocks(newBlocks);
+    };
+
     // Filter Products
     const filteredProducts = allProducts.filter(p => 
         (getProdName(p) || '').toLowerCase().includes(productSearch.toLowerCase())
@@ -204,6 +220,9 @@ const PageEditPage = () => {
             data.append('relatedTemplate', formData.relatedTemplate || '');
             data.append('seo', JSON.stringify(formData.seo));
             data.append('relatedProducts', JSON.stringify(relatedProducts.map(p => p._id)));
+            
+            // LƯU Ý MỚI: Đính kèm dữ liệu injectedBlocks vào form
+            data.append('injectedBlocks', JSON.stringify(injectedBlocks));
 
             let contentToSave = formData.content || '';
             if (typeof formData.content === 'object' && formData.content !== null) {
@@ -292,81 +311,115 @@ const PageEditPage = () => {
                         </div>
                     </div>
 
-                    {/* Widget: Product Selector */}
-                    <div className="pe-card">
-                        <div className="pe-card-header">
-                            <Package size={18} className="icon-orange"/>
-                            <span>Sản phẩm gợi ý ({relatedProducts.length} đã chọn)</span>
+                    {/* WIDGET MỚI: CẤU HÌNH CHÈN NỘI TUYẾN (INJECTED BLOCKS) */}
+                    <div className="pe-card" style={{ borderColor: '#bfdbfe' }}>
+                        <div className="pe-card-header" style={{ backgroundColor: '#eff6ff', borderBottom: '1px solid #bfdbfe' }}>
+                            <LayoutTemplate size={18} className="icon-blue" />
+                            <span style={{ color: '#1e3a8a', fontWeight: 600 }}>Chèn nội tuyến (Banner / Sản phẩm)</span>
+                            <button 
+                                type="button" 
+                                onClick={handleAddInjectedBlock} 
+                                className="pe-btn-small ml-auto" 
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#2563eb', color: '#fff', border: 'none' }}
+                            >
+                                <Plus size={16} /> Thêm khối
+                            </button>
                         </div>
                         <div className="pe-card-body">
-                            <div className="pe-search-wrapper">
-                                <Search size={16} className="pe-search-icon" />
-                                <input 
-                                    type="text" className="pe-search-input"
-                                    placeholder="Tìm kiếm sản phẩm để thêm..."
-                                    value={productSearch} onChange={(e) => setProductSearch(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="pe-product-list">
-                                {displayProducts.length > 0 ? (
-                                    displayProducts.map(prod => {
-                                        const isChecked = relatedProducts.some(p => p._id === prod._id);
-                                        return (
-                                            <div 
-                                                key={prod._id} 
-                                                className={`pe-product-item ${isChecked ? 'active' : ''}`}
-                                                onClick={() => handleToggleProduct(prod)}
-                                            >
-                                                <div className="pe-product-info">
-                                                    <div className={`pe-checkbox ${isChecked ? 'checked' : ''}`}>
-                                                        {isChecked && <Check size={12} />}
-                                                    </div>
-                                                    <img src={getProdImage(prod)} className="pe-product-thumb" alt="" />
-                                                    <div>
-                                                        <div className="pe-product-name">{getProdName(prod)}</div>
-                                                        <div className="pe-product-price">{prod.price?.toLocaleString()}đ</div>
-                                                    </div>
+                            {injectedBlocks.length === 0 ? (
+                                <div className="pe-empty-state" style={{ padding: '2rem', border: '1px dashed #cbd5e1', backgroundColor: '#f8fafc' }}>
+                                    <p style={{ color: '#64748b' }}>Chưa có khối nội dung chèn nào. Nhấn "Thêm khối" để chèn banner hoặc sản phẩm xen kẽ vào các đoạn văn của bài viết.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {injectedBlocks.map((block, index) => (
+                                        <div key={index} style={{ display: 'flex', gap: '16px', backgroundColor: '#f8fafc', padding: '16px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                                            
+                                            {/* Loại hiển thị */}
+                                            <div style={{ flex: '0 0 160px' }}>
+                                                <label className="pe-label" style={{ fontSize: '13px', marginBottom: '6px' }}>Loại khối chèn</label>
+                                                <div className="pe-select-wrapper">
+                                                    <select 
+                                                        value={block.type} 
+                                                        onChange={(e) => handleUpdateInjectedBlock(index, 'type', e.target.value)}
+                                                        className="pe-select" style={{ fontSize: '13px', padding: '6px 12px' }}
+                                                    >
+                                                        <option value="product">Sản phẩm gợi ý</option>
+                                                        <option value="banner">Banner Quảng cáo</option>
+                                                    </select>
+                                                    <ChevronDown size={14} className="pe-select-arrow"/>
                                                 </div>
                                             </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="pe-empty-state">Không tìm thấy sản phẩm nào</div>
-                                )}
-                            </div>
 
-                            {filteredProducts.length > 5 && (
-                                <div className="pe-load-more">
-                                    <button type="button" onClick={() => setIsProductListExpanded(!isProductListExpanded)}>
-                                        {isProductListExpanded ? 
-                                            <><span className="mr-1">Thu gọn</span> <ChevronUp size={16} /></> : 
-                                            <><span className="mr-1">Xem thêm {filteredProducts.length - 5} sản phẩm</span> <ChevronDown size={16} /></>
-                                        }
-                                    </button>
-                                </div>
-                            )}
+                                            {/* Vị trí chèn */}
+                                            <div style={{ flex: '0 0 120px' }}>
+                                                <label className="pe-label" style={{ fontSize: '13px', marginBottom: '6px' }}>Sau đoạn văn thứ</label>
+                                                <input 
+                                                    type="number" min="1" 
+                                                    value={block.position} 
+                                                    onChange={(e) => handleUpdateInjectedBlock(index, 'position', Number(e.target.value))}
+                                                    className="pe-input" style={{ fontSize: '13px', padding: '6px 12px' }}
+                                                />
+                                            </div>
 
-                            {/* Selected Summary */}
-                            {relatedProducts.length > 0 && (
-                                <div className="pe-selected-summary">
-                                    <div className="pe-summary-header">
-                                        <span>Đã chọn ({relatedProducts.length})</span>
-                                        <small>Click 'X' để bỏ chọn</small>
-                                    </div>
-                                    <div className="pe-selected-list">
-                                        {relatedProducts.map(prod => (
-                                            <div key={prod._id} className="pe-selected-item">
-                                                <div className="pe-selected-info">
-                                                    <img src={getProdImage(prod)} alt="" />
-                                                    <span title={getProdName(prod)}>{getProdName(prod)}</span>
-                                                </div>
-                                                <button type="button" onClick={() => handleRemoveProduct(prod._id)} className="pe-btn-remove">
-                                                    <X size={16} />
+                                            {/* Cấu hình linh hoạt theo loại */}
+                                            <div style={{ flex: '1' }}>
+                                                {block.type === 'product' ? (
+                                                    <div>
+                                                        <label className="pe-label" style={{ fontSize: '13px', marginBottom: '6px' }}>Chọn sản phẩm hiển thị</label>
+                                                        <div className="pe-select-wrapper">
+                                                            <select 
+                                                                value={typeof block.productId === 'object' ? block.productId?._id : block.productId} 
+                                                                onChange={(e) => handleUpdateInjectedBlock(index, 'productId', e.target.value)}
+                                                                className="pe-select" style={{ fontSize: '13px', padding: '6px 12px' }}
+                                                            >
+                                                                <option value="">-- Chọn sản phẩm --</option>
+                                                                {allProducts.map(prod => (
+                                                                    <option key={prod._id} value={prod._id}>
+                                                                        {getProdName(prod)} ({prod.price?.toLocaleString()}đ)
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <ChevronDown size={14} className="pe-select-arrow"/>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                                        <div style={{ flex: 1 }}>
+                                                            <label className="pe-label" style={{ fontSize: '13px', marginBottom: '6px' }}>Link Ảnh Banner</label>
+                                                            <input 
+                                                                type="text" placeholder="https://..." 
+                                                                value={block.bannerImg} 
+                                                                onChange={(e) => handleUpdateInjectedBlock(index, 'bannerImg', e.target.value)}
+                                                                className="pe-input" style={{ fontSize: '13px', padding: '6px 12px' }}
+                                                            />
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <label className="pe-label" style={{ fontSize: '13px', marginBottom: '6px' }}>Link chuyển hướng (Tùy chọn)</label>
+                                                            <input 
+                                                                type="text" placeholder="https://..." 
+                                                                value={block.bannerLink} 
+                                                                onChange={(e) => handleUpdateInjectedBlock(index, 'bannerLink', e.target.value)}
+                                                                className="pe-input" style={{ fontSize: '13px', padding: '6px 12px' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Nút Xóa */}
+                                            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '4px' }}>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => handleRemoveInjectedBlock(index)}
+                                                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px' }}
+                                                    title="Xóa khối chèn này"
+                                                >
+                                                    <Trash2 size={18} />
                                                 </button>
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -430,14 +483,12 @@ const PageEditPage = () => {
                                 <button 
                                     type="button" 
                                     className={`pe-type-select ${!formData.isBlog ? 'active' : ''}`} 
-                                    // SỬA TẠI ĐÂY: Thêm category: '' để reset danh mục khi chọn Page
                                     onClick={() => setFormData(p => ({...p, isBlog: false, category: ''}))}
                                 >
                                     <LayoutTemplate size={16}/> Page
                                 </button>
                             </div>
                             
-                            {/* Đoạn này giữ nguyên: Chỉ hiển thị chọn danh mục khi isBlog = true */}
                             {formData.isBlog && (
                                 <div className="form-group">
                                     <label className="pe-label">Danh mục bài viết</label>
@@ -452,22 +503,6 @@ const PageEditPage = () => {
                             )}
                         </div>
                     </div>
-
-                    {/* <div className="pe-card">
-                        <div className="pe-card-header bg-indigo-light">
-                            <LayoutTemplate size={18} className="icon-indigo"/>
-                            <span className="text-indigo">Gắn mẫu thiệp (Optional)</span>
-                        </div>
-                        <div className="pe-card-body">
-                             <div className="pe-select-wrapper">
-                                <select name="relatedTemplate" className="pe-select pe-select-indigo" value={formData.relatedTemplate} onChange={handleChange}>
-                                    <option value="">-- Không đính kèm --</option>
-                                    {templates.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-                                </select>
-                                <ChevronDown size={14} className="pe-select-arrow"/>
-                            </div>
-                        </div>
-                    </div> */}
 
                     <div className="pe-card">
                         <div className="pe-card-header">

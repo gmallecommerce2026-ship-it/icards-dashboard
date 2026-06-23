@@ -8,7 +8,7 @@ const getAllTopics = () => {
 const createTopic = (topicData) => {
     return api.post('/admin/topics', topicData);
 };
-
+const seedTopics = () => api.post('/admin/topics/seed');
 const updateTopic = (id, topicData) => {
     return api.put(`/admin/topics/${id}`, topicData);
 };

@@ -20,7 +20,7 @@ const AuthService = {
         } catch (error) {
             console.error("Lỗi khi gọi API logout:", error);
         } finally {
-            Cookies.remove('token'); 
+            Cookies.remove('token');
         }
     },
     getMe: async () => {
@@ -49,13 +49,13 @@ const AuthService = {
         const response = await api.delete(`/admin/users/${userId}`);
         return response.data;
     },
-    
+
     // === Dashboard ===
     getDashboardData: async () => {
         const response = await api.get('/admin/dashboard');
         const mockData = {
-            dailyVisitors: [{ name: 'T2', uv: 4000, pv: 2400 },{ name: 'T3', uv: 3000, pv: 1398 },{ name: 'T4', uv: 2000, pv: 9800 },{ name: 'T5', uv: 2780, pv: 3908 },{ name: 'T6', uv: 1890, pv: 4800 },{ name: 'T7', uv: 2390, pv: 3800 },{ name: 'CN', uv: 3490, pv: 4300 }],
-            hotProducts: [{ id: 1, name: 'Bộ thiệp cưới "Rustic Charm"', clicks: 2345 },{ id: 2, name: 'Thiệp sinh nhật "Watercolor Dreams"', clicks: 1987 },{ id: 3, name: 'Thiệp thôi nôi "Baby Safari"', clicks: 1567 },{ id: 4, name: 'Thiệp tân gia "Modern Home"', clicks: 1234 },{ id: 5, name: 'Bộ thiệp "Vintage Floral"', clicks: 987 }]
+            dailyVisitors: [{ name: 'T2', uv: 4000, pv: 2400 }, { name: 'T3', uv: 3000, pv: 1398 }, { name: 'T4', uv: 2000, pv: 9800 }, { name: 'T5', uv: 2780, pv: 3908 }, { name: 'T6', uv: 1890, pv: 4800 }, { name: 'T7', uv: 2390, pv: 3800 }, { name: 'CN', uv: 3490, pv: 4300 }],
+            hotProducts: [{ id: 1, name: 'Bộ thiệp cưới "Rustic Charm"', clicks: 2345 }, { id: 2, name: 'Thiệp sinh nhật "Watercolor Dreams"', clicks: 1987 }, { id: 3, name: 'Thiệp thôi nôi "Baby Safari"', clicks: 1567 }, { id: 4, name: 'Thiệp tân gia "Modern Home"', clicks: 1234 }, { id: 5, name: 'Bộ thiệp "Vintage Floral"', clicks: 987 }]
         };
         return { ...response.data, ...mockData };
     },
@@ -117,9 +117,9 @@ const AuthService = {
     },
 
     // === Templates ===
-    getTemplates: async (queryParams = '') => { 
+    getTemplates: async (queryParams = '') => {
         const response = await api.get(`/admin/templates?${queryParams}`);
-        return response.data; 
+        return response.data;
     },
     getTemplateCategories: async () => {
         const response = await api.get('/admin/templates/categories');
@@ -204,7 +204,7 @@ const AuthService = {
     bulkAddAssets: async (files, metadata) => {
         const formData = new FormData();
         files.forEach(file => {
-            formData.append('images', file.file); 
+            formData.append('images', file.file);
         });
         formData.append('metadata', JSON.stringify(metadata));
 
@@ -249,6 +249,23 @@ const AuthService = {
         const response = await api.delete(`/admin/pages/${pageId}`);
         return response.data;
     },
+    // Quản lý Media (R2)
+    getMediaList: async () => {
+        const response = await api.get('/admin/media');
+        return response.data; // response.data format: { success: true, data: [...] }
+    },
+    uploadMedia: async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post('/admin/media/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+    deleteMedia: async (id) => {
+        const response = await api.delete(`/admin/media/${id}`);
+        return response.data;
+    },
     updatePageOrder: async (pages) => {
         // === SỬA LỖI TẠI ĐÂY: Gửi thẳng đối tượng `pages` mà không gói lại ===
         return api.put('/admin/pages/update-order', pages);
@@ -266,7 +283,7 @@ const AuthService = {
         const formData = new FormData();
         formData.append('name', fontData.name);
         formData.append('category', fontData.category);
-        formData.append('font', fontData.fontFile); 
+        formData.append('font', fontData.fontFile);
         const response = await api.post('/admin/fonts', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -277,15 +294,15 @@ const AuthService = {
     },
     bulkAddFonts: async (files, metadata, overwrite = false) => {
         const formData = new FormData();
-        
+
         // Append danh sách file
         files.forEach(file => {
             formData.append('fonts', file.file);
         });
-        
+
         // Append metadata
         formData.append('metadata', JSON.stringify(metadata));
-        
+
         // Append cờ overwrite (chuyển sang string để gửi qua FormData)
         formData.append('overwrite', overwrite.toString());
 
@@ -300,7 +317,7 @@ const AuthService = {
     },
     bulkDeleteFonts: async (ids) => {
         const response = await api.delete('/admin/fonts/bulk-delete', {
-            data: { ids } 
+            data: { ids }
         });
         return response.data;
     },

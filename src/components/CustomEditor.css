@@ -319,3 +319,128 @@
     display: table;
     clear: both;
 }
+
+/* --- TỔNG HỢP STYLE TABLE CHO CẢ EDITOR VÀ PHẦN PREVIEW --- */
+.tiptap table,
+.tiptap-content1 table,
+table.custom-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100% !important;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.tiptap table td, 
+.tiptap table th,
+.tiptap-content1 table td, 
+.tiptap-content1 table th {
+  min-width: 1em;
+  border: 1px solid #ced4da !important; /* Hiện viền bảng sắc nét */
+  padding: 8px 12px !important;         /* Khoảng cách bên trong ô */
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  text-align: left;
+}
+
+/* Style riêng cho hàng tiêu đề th giống Word/Excel */
+.tiptap table th,
+.tiptap-content1 table th {
+  font-weight: bold;
+  background-color: #f8f9fa; /* Màu nền xám nhạt cho hàng đầu tiên */
+}
+
+/* --- CÁC THUỘC TÍNH BỔ TRỢ TRONG EDITOR (GIỮ NGUYÊN) --- */
+.tiptap table .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(59, 130, 246, 0.2);
+  pointer-events: none;
+}
+
+.tiptap table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #3B82F6;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tiptap table.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
+/* --- TỔNG HỢP STYLE TABLE CHO CẢ EDITOR VÀ PHẦN PREVIEW --- */
+.tiptap table,
+.tiptap-content table,
+.tiptap-content1 table,
+table.custom-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100% !important;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+/* THÊM table.custom-table td và table.custom-table th VÀO ĐÂY ĐỂ HIỂN THỊ VIỀN Ở MỌI NƠI */
+.tiptap table td, 
+.tiptap table th,
+.tiptap-content table td, 
+.tiptap-content table th,
+.tiptap-content1 table td, 
+.tiptap-content1 table th,
+table.custom-table td,
+table.custom-table th {
+  min-width: 1em;
+  border: 1px solid #ced4da !important; /* Hiện viền bảng sắc nét */
+  padding: 8px 12px !important;         /* Khoảng cách bên trong ô */
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  text-align: left;
+}
+
+/* Style riêng cho hàng tiêu đề th giống Word/Excel */
+.tiptap table th,
+.tiptap-content table th,
+.tiptap-content1 table th,
+table.custom-table th {
+  font-weight: bold;
+  background-color: #f8f9fa; /* Màu nền xám nhạt cho hàng đầu tiên */
+}
+
+/* --- CÁC THUỘC TÍNH BỔ TRỢ TRONG EDITOR (GIỮ NGUYÊN) --- */
+.tiptap table .selectedCell:after,
+table.custom-table .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(59, 130, 246, 0.2);
+  pointer-events: none;
+}
+
+.tiptap table .column-resize-handle,
+table.custom-table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #3B82F6;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tiptap table.resize-cursor,
+table.custom-table.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}

@@ -1,7 +1,8 @@
 // src/Pages/AdminDashboard/AdminDashboard.js
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, NavLink, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, ShoppingBag, LayoutTemplate, Settings, Search, Upload, Palette, Trash2, Edit, PlusCircle, Type, Image as ImageIcon, ChevronDown, Link as LinkIcon, Save, Columns, Eye, ToggleLeft, ToggleRight, ChevronsLeft, ChevronsRight, FileText, LogOut, Users, GripVertical, ListTree, ChevronUp, Video as VideoIcon } from 'lucide-react';
+import { Home, ShoppingBag, LayoutTemplate, Settings, Search, Upload, Palette, Trash2, Edit, PlusCircle, Type, Image as ImageIcon, ChevronDown, Link as LinkIcon, Save, Columns, Eye, ToggleLeft, ToggleRight, ChevronsLeft, ChevronsRight, FileText, LogOut, Users, GripVertical, ListTree, ChevronUp, Video as VideoIcon, X, Layout } from 'lucide-react';
+import MediaManagementPage from './MediaManagementPage';
 import { v4 as uuidv4 } from 'uuid';
 import InvitationDesign from '../InvitationDesign/InvitationDesign'
 import './AdminDashboard.css'
@@ -27,6 +28,10 @@ import BulkDeleteModal from './BulkDeleteModal';
 import { Select } from 'antd';
 import PageEditPage from './PageEditPage';
 import OccasionOrderManager from './OccasionOrderManager';
+import TemplateBlockManagement from './TemplateBlockManagement';
+import { Layers } from 'lucide-react';
+import templateBlockService from '../../services/templateBlock.service';
+import QuickCardBuilder from '../InvitationDesign/QuickCardBuilder';
 const { Option } = Select;
 const CM_TO_PX = 37.795;
 const MAX_DIMENSION_PX = 800;
@@ -133,7 +138,7 @@ const BulkTemplateModal = ({ isOpen, onClose, onSave }) => {
                     });
                 }
             });
-            
+
             if (categoryCombinations.length === 0) {
                 toast.error("Dữ liệu danh mục không đầy đủ (thiếu Group hoặc Type). Vui lòng kiểm tra lại cấu trúc.");
                 return;
@@ -208,7 +213,7 @@ const BulkTemplateModal = ({ isOpen, onClose, onSave }) => {
 
             const imagesFolder = zip.folder("images");
             const placeholderImageUrl = 'https://placehold.co/800x1200/E9ECEF/333?text=Sample+Image';
-            
+
             const response = await fetch(placeholderImageUrl);
             const imageBlob = await response.blob();
 
@@ -290,7 +295,7 @@ const SortableTemplateCard = ({ template, onEdit, onDelete, onStatusChange, onOr
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: template._id });
     const navigate = useNavigate();
     const [order, setOrder] = useState(template.displayOrder);
-    
+
     // 1. THÊM STATE LOADING CHO NÚT DUYỆT
     const [isApproving, setIsApproving] = useState(false);
 
@@ -339,54 +344,62 @@ const SortableTemplateCard = ({ template, onEdit, onDelete, onStatusChange, onOr
     return (
         <div ref={setNodeRef} style={style} className="template-card">
             <DragHandle {...attributes} {...listeners} />
-            
+
             <div className="template-card__image-wrapper" style={{ position: 'relative' }}>
                 <img src={template.imgSrc} alt={template.title} className="template-card__image" />
-                
-                {/* 3. THÊM OVERLAY TRẠNG THÁI (Chỉ hiện khi chưa duyệt) */}
+
+                {/* 1. BADGE TRẠNG THÁI: Đưa lên góc trên phải, dùng pointerEvents: 'none' để không chặn chuột */}
                 {!template.isActive && (
                     <div style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.55)', // Phủ mờ đen
-                        display: 'flex', flexDirection: 'column', 
-                        justifyContent: 'center', alignItems: 'center',
-                        zIndex: 2 // Đặt thấp hơn lớp hover (template-card__overlay)
+                        position: 'absolute', top: '10px', right: '10px',
+                        backgroundColor: '#FFFBEB', color: '#D97706', padding: '4px 12px',
+                        borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)', zIndex: 3, pointerEvents: 'none'
                     }}>
-                        <div style={{
-                            backgroundColor: '#FFFBEB', color: '#D97706', padding: '4px 12px',
-                            borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', marginBottom: '10px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                        }}>
-                            ● Đang ẩn (Chưa duyệt)
-                        </div>
-                        <button 
+                        ● Đang ẩn
+                    </div>
+                )}
+
+                {/* 2. OVERLAY CHỨNG CÁC NÚT THAO TÁC (CÙNG CẤP) */}
+                {/* Đổi flexDirection thành column để xếp nút Duyệt xuống dưới 3 nút kia */}
+                <div className="template-card__overlay" style={{ flexDirection: 'column', gap: '15px' }}>
+
+                    {/* Nhóm 3 nút cơ bản */}
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/templates/design/${template._id}`) }} className="template-card__action-btn" title="Chỉnh sửa thiết kế">
+                            <Palette size={24} />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); onEdit(template) }} className="template-card__action-btn" title="Chỉnh sửa thông tin">
+                            <Edit size={24} />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); onDelete(template._id) }} className="template-card__action-btn" title="Xóa mẫu">
+                            <Trash2 size={24} />
+                        </button>
+                    </div>
+
+                    {/* Nút Duyệt ngay: Cùng nằm trong Overlay, hiện ra cùng lúc với 3 nút trên */}
+                    {!template.isActive && (
+                        <button
                             onClick={handleApproveClick}
                             disabled={isApproving}
+                            className="template-card__approve-action-btn" /* Thêm class để CSS animation */
                             style={{
                                 backgroundColor: '#10B981', color: '#fff', border: 'none',
-                                padding: '8px 16px', borderRadius: '6px', cursor: 'pointer',
+                                padding: '8px 20px', borderRadius: '8px', cursor: 'pointer',
                                 fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px',
-                                transition: 'all 0.2s', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)',
+                                boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)',
                                 opacity: isApproving ? 0.7 : 1
                             }}
                         >
                             {isApproving ? 'Đang xử lý...' : '✓ Duyệt ngay'}
                         </button>
-                    </div>
-                )}
-
-                {/* Lớp overlay chứa chức năng (Sửa, Xóa) cũ của bạn */}
-                {/* Lưu ý: Trong CSS của bạn, đảm bảo .template-card__overlay có z-index lớn hơn 2 (ví dụ: z-index: 10) để khi hover nó nổi lên trên lớp Đang ẩn */}
-                <div className="template-card__overlay">
-                    <button onClick={(e) => {e.stopPropagation(); navigate(`/dashboard/templates/design/${template._id}`)}} className="template-card__action-btn" title="Chỉnh sửa thiết kế"><Palette size={24} /></button>
-                    <button onClick={(e) => {e.stopPropagation(); onEdit(template)}} className="template-card__action-btn" title="Chỉnh sửa thông tin"><Edit size={24} /></button>
-                    <button onClick={(e) => {e.stopPropagation(); onDelete(template._id)}} className="template-card__action-btn" title="Xóa mẫu"><Trash2 size={24} /></button>
+                    )}
                 </div>
             </div>
 
             <div className="template-card__info">
                 <h4 className="template-card__name" title={template.title}>{template.title}</h4>
-                
+
                 {/* 4. CẬP NHẬT GIAO DIỆN CATEGORY KÈM THEO TRẠNG THÁI HIỂN THỊ */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <p className="template-card__category" style={{ margin: 0 }}>{template.category}</p>
@@ -531,7 +544,7 @@ export const AuthProvider = ({ children }) => {
 
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+    return useContext(AuthContext);
 };
 
 const AdminRoute = ({ children, roles }) => {
@@ -569,6 +582,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         // Vai trò: 'admin', 'marketing'
         { to: "/dashboard/categories", icon: <ListTree size={20} />, text: "Quản lý Danh mục", roles: ['admin', 'marketing'] }, // Route mới
         { to: "/dashboard/pages", icon: <FileText size={20} />, text: "Quản lý bài viết", roles: ['admin', 'marketing'] },
+        { to: "/dashboard/media", icon: <ImageIcon size={20} />, text: "Quản lý Media", roles: ['admin'] },
         { to: "/dashboard/fonts", icon: <Type size={20} />, text: "Quản lý Fonts", roles: ['admin', 'designer'] },
 
         // Vai trò: 'admin', 'designer'
@@ -700,7 +714,7 @@ const DashboardPage = () => {
     return (
         <div>
             <AdminHeader title="Dashboard" />
-            <div className="dashboard__grid dashboard__grid--stats" style={{marginTop: '1.5rem'}}>
+            <div className="dashboard__grid dashboard__grid--stats" style={{ marginTop: '1.5rem' }}>
                 <StatsCard title="Lượng truy cập (hôm nay)" value={stats?.dailyVisitors?.length > 0 ? stats.dailyVisitors[stats.dailyVisitors.length - 1].uv : 0} icon={<Eye />} color="blue" />
                 <StatsCard title="Tổng sản phẩm" value={stats?.totalProducts ?? 0} icon={<ShoppingBag />} color="green" />
                 <StatsCard title="Tổng mẫu thiệp" value={stats?.totalTemplates ?? 0} icon={<LayoutTemplate />} color="yellow" />
@@ -776,14 +790,14 @@ const ProductManagementPage = () => {
 
         // Thêm ảnh đại diện và thư viện ảnh
         if (productData.imgSrc && productData.imgSrc instanceof File) {
-             formData.append('image', productData.imgSrc);
+            formData.append('image', productData.imgSrc);
         }
         if (productData.images && Array.isArray(productData.images)) {
-             productData.images.forEach(file => {
+            productData.images.forEach(file => {
                 if (file instanceof File) {
                     formData.append('images', file);
                 }
-             });
+            });
         }
 
         try {
@@ -822,16 +836,16 @@ const ProductManagementPage = () => {
             <div className="page-header-actions">
                 <div className="search-and-filter">
                     <div className="search-box">
-                       <Search size={20} className="search-box__icon" />
-                       <input
-                           type="text"
-                           placeholder="Tìm kiếm theo tên..."
-                           className="form-control"
-                           value={searchTerm}
-                           onChange={(e) => setSearchTerm(e.target.value)}
-                       />
+                        <Search size={20} className="search-box__icon" />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm theo tên..."
+                            className="form-control"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
-                     <select
+                    <select
                         className="form-control"
                         value={categoryFilter}
                         onChange={(e) => setCategoryFilter(e.target.value)}
@@ -845,15 +859,15 @@ const ProductManagementPage = () => {
                         className="form-control"
                         value={minPrice}
                         onChange={(e) => setMinPrice(e.target.value)}
-                        style={{width: '150px'}}
+                        style={{ width: '150px' }}
                     />
-                     <input
+                    <input
                         type="number"
                         placeholder="Giá cao nhất"
                         className="form-control"
                         value={maxPrice}
                         onChange={(e) => setMaxPrice(e.target.value)}
-                        style={{width: '150px'}}
+                        style={{ width: '150px' }}
                     />
                 </div>
                 <button onClick={() => handleOpenModal()} className="btn btn-primary"><PlusCircle size={20} /> Thêm sản phẩm</button>
@@ -922,7 +936,7 @@ const ProductModal = ({ isOpen, onClose, onSave, product }) => {
         setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== indexToRemove) }));
         setPreviews(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== indexToRemove) }));
     };
-    
+
     const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
 
     return (
@@ -966,8 +980,8 @@ const ProductModal = ({ isOpen, onClose, onSave, product }) => {
                             <div className="form-group">
                                 <label className="form-label">Ảnh đại diện</label>
                                 <div className="image-upload-preview single">
-                                    {previews.imgSrc && <img src={previews.imgSrc} alt="Preview"/>}
-                                    <label className="btn btn-secondary btn-sm"><Upload size={16}/> {previews.imgSrc ? 'Thay đổi' : 'Tải lên'}<input type="file" accept="image/*" hidden onChange={handleMainImageChange}/></label>
+                                    {previews.imgSrc && <img src={previews.imgSrc} alt="Preview" />}
+                                    <label className="btn btn-secondary btn-sm"><Upload size={16} /> {previews.imgSrc ? 'Thay đổi' : 'Tải lên'}<input type="file" accept="image/*" hidden onChange={handleMainImageChange} /></label>
                                 </div>
                             </div>
                             <div className="form-group">
@@ -975,11 +989,11 @@ const ProductModal = ({ isOpen, onClose, onSave, product }) => {
                                 <div className="gallery-upload-container">
                                     {previews.images.map((imgUrl, index) => (
                                         <div key={index} className="gallery-image-item">
-                                            <img src={imgUrl} alt={`Gallery item ${index + 1}`}/>
+                                            <img src={imgUrl} alt={`Gallery item ${index + 1}`} />
                                             <button type="button" onClick={() => removeGalleryImage(index)} className="delete-btn-overlay">×</button>
                                         </div>
                                     ))}
-                                    <label className="gallery-add-btn"><PlusCircle size={24}/><span>Thêm ảnh</span><input type="file" accept="image/*" multiple hidden onChange={handleGalleryImagesChange}/></label>
+                                    <label className="gallery-add-btn"><PlusCircle size={24} /><span>Thêm ảnh</span><input type="file" accept="image/*" multiple hidden onChange={handleGalleryImagesChange} /></label>
                                 </div>
                             </div>
                         </div>
@@ -996,17 +1010,257 @@ const ProductModal = ({ isOpen, onClose, onSave, product }) => {
     );
 };
 
+const SortableSelectedTemplate = ({ template, onRemove }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: template._id });
+    const style = { transform: CSS.Transform.toString(transform), transition };
+
+    return (
+        <div ref={setNodeRef} style={style} className="selected-template-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', marginBottom: '8px', backgroundColor: '#f8f9fa', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div {...attributes} {...listeners} style={{ cursor: 'grab' }}><GripVertical size={16} color="#6b7280" /></div>
+                <img src={template.imgSrc || 'https://placehold.co/40'} alt="thumb" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                <span style={{ fontWeight: '500', fontSize: '14px' }}>{template.title}</span>
+            </div>
+            <button type="button" onClick={() => onRemove(template._id)} className="delete-btn"><X size={16} /></button>
+        </div>
+    );
+};
+
+// --- COMPONENT CHÍNH ĐỂ NHÚNG VÀO SETTINGS PAGE ---
+const HomepageBlockManager = () => {
+    const [blocks, setBlocks] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // State Modal
+    const [editingBlock, setEditingBlock] = useState(null);
+    const [formData, setFormData] = useState({ title: '', slug: '', isActive: true });
+
+    // Pick Template
+    const [allTemplates, setAllTemplates] = useState([]);
+    const [searchTemplate, setSearchTemplate] = useState('');
+    const [selectedTemplates, setSelectedTemplates] = useState([]);
+
+    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+    useEffect(() => {
+        fetchBlocks();
+        fetchAllTemplatesForPicker();
+    }, []);
+
+    const fetchBlocks = async () => {
+        try {
+            const res = await templateBlockService.getBlocks();
+            setBlocks(res.data?.data || []);
+        } catch (error) { toast.error("Lỗi tải danh sách khối"); }
+    };
+
+    const fetchAllTemplatesForPicker = async () => {
+        try {
+            const res = await AuthService.getTemplates();
+            // Lấy danh sách template gốc từ API
+            setAllTemplates(res.data || []);
+        } catch (error) { console.error("Lỗi tải template"); }
+    };
+
+    const openModal = (block = null) => {
+        if (block) {
+            setEditingBlock(block);
+            setFormData({ title: block.title, slug: block.slug, isActive: block.isActive });
+            setSelectedTemplates(block.templates || []);
+        } else {
+            setEditingBlock(null);
+            setFormData({ title: '', slug: '', isActive: true });
+            setSelectedTemplates([]);
+        }
+        setIsModalOpen(true);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const payload = {
+                ...formData,
+                templates: selectedTemplates.map(t => t._id)
+            };
+
+            if (editingBlock) {
+                await templateBlockService.updateBlock(editingBlock._id, payload);
+                toast.success("Cập nhật Khối thành công!");
+            } else {
+                await templateBlockService.createBlock(payload);
+                toast.success("Tạo Khối thành công!");
+            }
+            setIsModalOpen(false);
+            fetchBlocks();
+        } catch (error) { toast.error("Lỗi khi lưu!"); }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('Bạn có chắc muốn xóa khối này?')) {
+            try {
+                await templateBlockService.deleteBlock(id);
+                toast.success("Đã xóa khối");
+                fetchBlocks();
+            } catch (error) { toast.error("Lỗi xóa khối"); }
+        }
+    }
+
+    const handleAddTemplate = (template) => {
+        if (!selectedTemplates.find(t => t._id === template._id)) {
+            setSelectedTemplates([...selectedTemplates, template]);
+        }
+    };
+    const handleRemoveTemplate = (id) => {
+        setSelectedTemplates(selectedTemplates.filter(t => t._id !== id));
+    };
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = selectedTemplates.findIndex(t => t._id === active.id);
+            const newIndex = selectedTemplates.findIndex(t => t._id === over.id);
+            setSelectedTemplates(arrayMove(selectedTemplates, oldIndex, newIndex));
+        }
+    };
+
+    const filteredTemplates = allTemplates.filter(t =>
+        t.title.toLowerCase().includes(searchTemplate.toLowerCase()) &&
+        !selectedTemplates.find(selected => selected._id === t._id)
+    );
+
+    return (
+        <div className="card settings-card">
+            <h3 className="card__title"><Layout size={24} /> Quản lý danh mục Khối Trang Chủ</h3>
+            <p className="settings-description">
+                Tạo các bộ sưu tập (Blocks) hiển thị ngoài trang chủ. Chọn thủ công các mẫu thiệp cho từng khối để chạy chiến dịch hoặc làm nổi bật.
+            </p>
+
+            <div className="table-container" style={{ marginTop: '1rem' }}>
+                <table className="table">
+                    <thead><tr><th>Tên Khối</th><th>Đường dẫn (Slug)</th><th>Số Template</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                    <tbody>
+                        {blocks.map(block => (
+                            <tr key={block._id}>
+                                <td><strong>{block.title}</strong></td>
+                                <td>/{block.slug}</td>
+                                <td>{block.templates?.length || 0}</td>
+                                <td>
+                                    <span style={{ color: block.isActive ? '#10B981' : '#6B7280', fontWeight: 'bold' }}>
+                                        {block.isActive ? 'Đang bật' : 'Đã tắt'}
+                                    </span>
+                                </td>
+                                <td className="table__actions">
+                                    <button onClick={() => openModal(block)} className="edit-btn" title="Sửa"><Edit size={20} /></button>
+                                    <button onClick={() => handleDelete(block._id)} className="delete-btn" title="Xóa"><Trash2 size={20} /></button>
+                                </td>
+                            </tr>
+                        ))}
+                        {blocks.length === 0 && <tr><td colSpan="5" style={{ textAlign: 'center', color: '#6b7280' }}>Chưa có khối nào.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+
+            <button onClick={() => openModal()} className="btn btn-secondary" style={{ marginTop: '1.5rem' }}>
+                <PlusCircle size={18} /> Thêm Khối mới
+            </button>
+
+            {/* MODAL TẠO/SỬA KHỐI & CHỌN TEMPLATE */}
+            {isModalOpen && (
+                <div className="modal-overlay" style={{ zIndex: 1000 }}>
+                    <div className="modal-content modal-content--xlarge" style={{ maxWidth: '1000px' }}>
+                        <div className="modal-header">
+                            <h3 className="modal-title">{editingBlock ? 'Chỉnh sửa Khối Trang Chủ' : 'Tạo Khối Trang Chủ mới'}</h3>
+                            <button onClick={() => setIsModalOpen(false)} className="modal-close-btn">×</button>
+                        </div>
+                        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+
+                            {/* CỘT TRÁI */}
+                            <div>
+                                <div className="form-group">
+                                    <label className="form-label">Tên Khối (VD: Top Thiệp Cưới)</label>
+                                    <input type="text" className="form-control" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} required />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Đường dẫn (Slug)</label>
+                                    <input type="text" className="form-control" value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} placeholder="top-thiep-cuoi" required />
+                                </div>
+
+                                <div className="publish-toggle" style={{ marginBottom: '1.5rem' }}>
+                                    <div className="toggle-wrapper">
+                                        <span>{formData.isActive ? 'Đang hiển thị trên Web' : 'Đang ẩn'}</span>
+                                        <label className="switch">
+                                            <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
+                                            <span className="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <hr style={{ margin: '1.5rem 0', borderColor: '#e5e7eb' }} />
+
+                                <label className="form-label" style={{ fontWeight: 'bold' }}>Tìm & Thêm Template vào Khối:</label>
+                                <div className="search-box" style={{ marginBottom: '1rem' }}>
+                                    <Search size={18} className="search-box__icon" />
+                                    <input type="text" className="form-control" placeholder="Tìm theo tên template..." value={searchTemplate} onChange={(e) => setSearchTemplate(e.target.value)} />
+                                </div>
+
+                                <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', height: '350px', overflowY: 'auto', padding: '10px' }}>
+                                    {filteredTemplates.slice(0, 30).map(t => (
+                                        <div key={t._id} onClick={() => handleAddTemplate(t)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <img src={t.imgSrc} alt="" style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover' }} />
+                                                <span style={{ fontSize: '14px' }}>{t.title}</span>
+                                            </div>
+                                            <PlusCircle size={18} color="#10B981" />
+                                        </div>
+                                    ))}
+                                    {filteredTemplates.length === 0 && <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: '20px' }}>Không tìm thấy hoặc đã chọn hết.</p>}
+                                </div>
+                            </div>
+
+                            {/* CỘT PHẢI: Kéo Thả */}
+                            <div>
+                                <label className="form-label" style={{ fontWeight: 'bold', color: '#027A48' }}>
+                                    Template đã chọn ({selectedTemplates.length})
+                                </label>
+                                <p className="settings-item__description" style={{ marginBottom: '1rem' }}>
+                                    Kéo thả để sắp xếp thứ tự hiển thị của các template trong khối này ngoài website.
+                                </p>
+
+                                <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', height: '530px', overflowY: 'auto', padding: '10px', backgroundColor: '#f9fafb' }}>
+                                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                        <SortableContext items={selectedTemplates.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                                            {selectedTemplates.map((template) => (
+                                                <SortableSelectedTemplate key={template._id} template={template} onRemove={handleRemoveTemplate} />
+                                            ))}
+                                        </SortableContext>
+                                    </DndContext>
+                                    {selectedTemplates.length === 0 && <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: '40px' }}>Chưa có template nào được chọn.</p>}
+                                </div>
+                            </div>
+
+                        </div>
+                        <div className="modal-footer" style={{ justifyContent: 'flex-end', gap: '10px' }}>
+                            <button onClick={() => setIsModalOpen(false)} className="btn btn-secondary">Hủy</button>
+                            <button onClick={handleSubmit} className="btn btn-primary">Lưu Khối</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const TemplateManagementPage = () => {
     // 1. State cơ bản
     const [templates, setTemplates] = React.useState([]);
+    const [showQuickBuilder, setShowQuickBuilder] = useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
     const [editingTemplate, setEditingTemplate] = React.useState(null);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const navigate = useNavigate();
-    
+
     // State cho Modal xóa hàng loạt
     const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
     const [filtersForDeletion, setFiltersForDeletion] = useState({});
@@ -1016,7 +1270,7 @@ const TemplateManagementPage = () => {
     const [categories, setCategories] = useState([]);
     const [groups, setGroups] = useState([]);
     const [types, setTypes] = useState([]);
-    
+
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedGroup, setSelectedGroup] = useState('all');
     const [selectedType, setSelectedType] = useState('all');
@@ -1047,22 +1301,21 @@ const TemplateManagementPage = () => {
 
     // 4. Effect: Tải cấu trúc danh mục chuẩn (Thay thế logic cũ)
     useEffect(() => {
-    const fetchNavTree = async () => {
-        try {
-            const response = await AuthService.getSettings();
-            // Lấy data an toàn, phòng trường hợp axios bọc data bên trong
-            const settings = response?.data || response || {};
-            const tree = settings.headerNav || [];
-            
-            setNavTree(tree);
-            // Cấp 1: Categories
-            setCategories(tree.map(node => node.title));
-        } catch (error) {
-            console.error("Không thể tải cấu trúc danh mục chuẩn.", error);
-        }
-    };
-    fetchNavTree();
-}, []);
+        const fetchNavTree = async () => {
+            try {
+                const response = await AuthService.getSettings();
+                const settings = response?.data || response || {}; // Bóc tách an toàn phòng trường hợp có wrapper "data"
+                const tree = settings.headerNav || [];
+
+                setNavTree(tree);
+                // Cấp 1: Categories
+                setCategories(tree.map(node => node.title));
+            } catch (error) {
+                console.error("Không thể tải cấu trúc danh mục chuẩn.", error);
+            }
+        };
+        fetchNavTree();
+    }, []);
 
     // 5. Effect: Tự động cập nhật Groups khi Category thay đổi (Client-side)
     useEffect(() => {
@@ -1078,8 +1331,8 @@ const TemplateManagementPage = () => {
         }
         // Reset cấp con khi cấp cha đổi
         if (selectedCategory === 'all') {
-             setSelectedGroup('all');
-             setSelectedType('all');
+            setSelectedGroup('all');
+            setSelectedType('all');
         }
     }, [selectedCategory, navTree]);
 
@@ -1096,9 +1349,9 @@ const TemplateManagementPage = () => {
         } else {
             setTypes([]);
         }
-         // Reset cấp con khi cấp cha đổi
+        // Reset cấp con khi cấp cha đổi
         if (selectedGroup === 'all') {
-             setSelectedType('all');
+            setSelectedType('all');
         }
     }, [selectedGroup, selectedCategory, navTree]);
 
@@ -1150,7 +1403,7 @@ const TemplateManagementPage = () => {
     // Xử lý lưu template (Create/Update)
     const handleSaveTemplate = async (templateDataObject) => {
         const formData = new FormData();
-    
+
         for (const key in templateDataObject) {
             const value = templateDataObject[key];
             if (key === 'loveGiftsButton' && value !== null) {
@@ -1161,7 +1414,7 @@ const TemplateManagementPage = () => {
                 formData.append(key, value);
             }
         }
-    
+
         try {
             if (editingTemplate) {
                 formData.append('id', editingTemplate._id);
@@ -1174,7 +1427,7 @@ const TemplateManagementPage = () => {
             }
             fetchTemplates(searchTerm, selectedCategory, selectedGroup, selectedType);
             handleCloseModal();
-        } catch(error) {
+        } catch (error) {
             const errorMessage = error.response?.data?.message || "Lưu mẫu thất bại.";
             toast.error(errorMessage);
             console.error(errorMessage);
@@ -1272,7 +1525,7 @@ const TemplateManagementPage = () => {
                                 onClick={() => {
                                     setSelectedCategory('all');
                                     // Reset cấp con khi chọn All
-                                    setSelectedGroup('all'); 
+                                    setSelectedGroup('all');
                                     setSelectedType('all');
                                 }}
                             >
@@ -1369,6 +1622,9 @@ const TemplateManagementPage = () => {
                         />
                     </div>
                     <div className="action-buttons-group">
+                        <button onClick={() => setShowQuickBuilder(true)} className="btn btn-secondary" style={{ backgroundColor: '#4f46e5', color: 'white', borderColor: '#4f46e5' }}>
+                            ✨ Tạo nhanh mẫu mới
+                        </button>
                         <button onClick={() => setIsBulkModalOpen(true)} className="btn btn-green">
                             <Upload size={18} /> Thêm hàng loạt (.zip)
                         </button>
@@ -1410,10 +1666,129 @@ const TemplateManagementPage = () => {
                 }}
                 filters={filtersForDeletion}
             />
+            {showQuickBuilder && (
+                <QuickCardBuilder
+                    onClose={() => setShowQuickBuilder(false)}
+                    onSuccess={() => fetchTemplates(searchTerm, selectedCategory, selectedGroup, selectedType)}
+                />
+            )}
         </div>
     );
 };
+// 1. Khai báo Template trống mặc định
+const DEFAULT_EMPTY_TEMPLATE_DATA = {
+    width: 800,
+    height: 600,
+    pages: []
+};
 
+// 2. Khai báo Template dành riêng cho Thiệp Cưới
+const DEFAULT_WEDDING_TEMPLATE_DATA = {
+    width: 800,
+    height: 600,
+    pages: [],
+    settings: {
+        "eventDate": "2025-10-31T17:15",
+        "groomName": "",
+        "brideName": "",
+        "groomInfo": "",
+        "brideInfo": "",
+        "groomImageUrl": "https://r2.icards.com.vn/501f88ddc46c5a60e6ecd91eeb19ae29",
+        "brideImageUrl": "https://r2.icards.com.vn/002ee2d17b57824618d24c5a7a58da3f",
+        "heroImages": { "main": "", "sub1": "", "sub2": "" },
+        "galleryImages": [
+            "https://r2.icards.com.vn/2ff12b45bc62fa64dd67b4dd8d0b189a",
+            "https://r2.icards.com.vn/25abd5ced1b32b70361cc574a152fc49",
+            "https://r2.icards.com.vn/7c4e674b0cb7c75d84bb7b2ea1a77608",
+            "https://r2.icards.com.vn/37653f755395c6ac95af87227ae0c41b",
+            "https://r2.icards.com.vn/0ee5d9d99c17c8d5712ce445d9837767",
+            "https://r2.icards.com.vn/ae2a16a72050fd4b08b0195ebb8fa2bd",
+            "https://r2.icards.com.vn/ddd3015fda469752e527f9d7ae5334a5"
+        ],
+        "bannerImages": [
+            { "id": "new-5769ec5c-37b6-4b7a-98f4-49df1c9fd2d1", "url": "https://r2.icards.com.vn/068833f27e99d9e62a2eedcda5151ea0" },
+            { "id": "new-7982a715-7eb9-4ec5-964f-129c409e49ae", "url": "https://r2.icards.com.vn/ddf067601b8ce637b66db83d4cd4e509" },
+            { "id": "new-52f78db8-b6d6-45f2-a1ce-8abc6fa814af", "url": "https://r2.icards.com.vn/f4543519a31f8cebab99d8fa22f9b749" }
+        ],
+        "contactGroom": "",
+        "contactBride": "",
+        "eventLocation": { "lat": 21.028511, "lng": 105.804817, "address": "" },
+        "musicUrl": "",
+        "qrCodeImageUrls": [],
+        "videoUrl": "https://youtu.be/Uha-5D1UpEk",
+        "invitationType": "Thiệp cưới",
+        "eventDescription": "",
+        "groomNameStyle": { "fontFamily": "Playfair Display", "fontSize": 28, "color": "#4a4a68", "fontWeight": "600" },
+        "brideNameStyle": { "fontFamily": "Playfair Display", "fontSize": 28, "color": "#4a4a68", "fontWeight": "600" },
+        "eventDescriptionStyle": { "fontFamily": "Inter", "fontSize": 18, "color": "#555555", "textAlign": "center" },
+        "groomInfoStyle": { "fontFamily": "Inter", "fontSize": 16, "color": "#555555", "textAlign": "center" },
+        "brideInfoStyle": { "fontFamily": "Inter", "fontSize": 16, "color": "#555555", "textAlign": "center" },
+        "groomImagePosition": { "x": 68, "y": 71, "scale": 1.8 },
+        "brideImagePosition": { "x": 0, "y": 0, "scale": 1 },
+        "contactGroomStyle": { "fontFamily": "Inter", "fontSize": 15, "color": "#777777", "textAlign": "center" },
+        "contactBrideStyle": { "fontFamily": "Inter", "fontSize": 15, "color": "#777777", "textAlign": "center" },
+        "countdownTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "coupleTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "coupleSubtitleStyle": { "fontFamily": "Inter", "fontSize": 18, "color": "#777777", "fontStyle": "italic" },
+        "participantsTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "eventsTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "loveStoryTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "galleryTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "videoTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "contactTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "qrCodeTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "participantTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 20, "color": "#4a4a68" },
+        "participantContentStyle": { "fontFamily": "Inter", "fontSize": 15, "color": "#555555" },
+        "eventCardTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 24, "color": "#4a4a68" },
+        "eventCardInfoStyle": { "fontFamily": "Inter", "fontSize": 16, "color": "#555555" },
+        "loveStoryItemTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 36, "color": "#4a4a68" },
+        "loveStoryItemDateStyle": { "fontFamily": "Inter", "fontSize": 15, "color": "#777777" },
+        "loveStoryItemDescStyle": { "fontFamily": "Inter", "fontSize": 16, "color": "#555555" },
+        "contactCardHeaderStyle": { "fontFamily": "Inter", "fontSize": 18, "color": "#4a4a68", "fontWeight": "600", "textTransform": "uppercase" },
+        "contactCardNameStyle": { "fontFamily": "Inter", "fontSize": 16, "color": "#333333", "fontWeight": "500" },
+        "qrCodeCaptionStyle": { "fontFamily": "Inter", "fontSize": 14, "color": "#555555", "marginTop": "8px" },
+        "countdownValueStyle": { "fontFamily": "Playfair Display", "fontSize": 40, "color": "#4a4a68", "fontWeight": "700" },
+        "countdownLabelStyle": { "fontFamily": "Inter", "fontSize": 14, "color": "#777777", "textTransform": "uppercase", "fontWeight": "500" },
+        "events": [
+            {
+                "id": "7d4e68ce-ef1c-444f-9089-3ae609f44135", "title": "", "date": "", "time": "", "address": "",
+                "mapUrl": "https://www.google.com/maps/place/St.+Joseph+Cathedral/@21.0287258,105.8485715,21z/data=!4m14!1m7!3m6!1s0x3135ab945034b945:0x90b57620787fd98e!2sSt.+Joseph+Cathedral!8m2!3d21.0286373!4d105.8488331!16s%2Fm%2F02rwkq5!3m5!1s0x3135ab945034b945:0x90b57620787fd98e!8m2!3d21.0286373!4d105.8488331!16s%2Fm%2F02rwkq5?entry=ttu&g_ep=EgoyMDI1MTAyMi4wIKXMDSoASAFQAw%3D%3D", "imageUrl": "https://r2.icards.com.vn/562aee9af4af25303e3c9b384d4be8d9",
+                "dressCode": [{ "color": "#000000" }, { "color": "#FFFFFF" }]
+            },
+            {
+                "id": "a381d3c0-0849-462e-8f88-4f39a1d4db22", "title": "", "date": "", "time": "", "address": "",
+                "mapUrl": "https://www.google.com/maps/place/St.+Joseph+Cathedral/@21.0287258,105.8485715,21z/data=!4m14!1m7!3m6!1s0x3135ab945034b945:0x90b57620787fd98e!2sSt.+Joseph+Cathedral!8m2!3d21.0286373!4d105.8488331!16s%2Fm%2F02rwkq5!3m5!1s0x3135ab945034b945:0x90b57620787fd98e!8m2!3d21.0286373!4d105.8488331!16s%2Fm%2F02rwkq5?entry=ttu&g_ep=EgoyMDI1MTAyMi4wIKXMDSoASAFQAw%3D%3D", "imageUrl": "https://r2.icards.com.vn/b6221f3477ee43aa29065594df178020",
+                "dressCode": [{ "color": "#000000" }, { "color": "#FFFFFF" }]
+            }
+        ],
+        "participants": [
+            { "id": "1945135c-c35f-416a-bc7e-a016d6c35d21", "title": "", "content": "", "imageUrl": "https://r2.icards.com.vn/216104106cfe753873c2448213143539" }
+        ],
+        "loveStory": [
+            { "id": "a859942e-509b-4a28-afa3-f5dabe4732d2", "title": "", "date": "", "description": "", "imageUrl": null },
+            { "id": "c74f54bf-5eab-4414-8e60-597f15862ec9", "title": "", "date": "", "description": "", "imageUrl": null }
+        ],
+        "blocksOrder": [
+            "BANNER_CAROUSEL", "EVENT_DESCRIPTION", "COUPLE_INFO", "PARTICIPANTS", "EVENT_SCHEDULE", "COUNTDOWN",
+            "LOVE_STORY", "GALLERY", "VIDEO", "CONTACT_INFO", "QR_CODES", "RSVP", "CUSTOM_HTML"
+        ],
+        "countdownTitle": "",
+        "coupleTitle": "",
+        "coupleSubtitle": "",
+        "participantsTitle": "",
+        "eventsTitle": "",
+        "loveStoryTitle": "",
+        "galleryTitle": "",
+        "videoTitle": "",
+        "contactTitle": "",
+        "qrCodeTitle": "",
+        "rsvpTitle": "",
+        "rsvpSubtitle": "",
+        "rsvpTitleStyle": { "fontFamily": "Playfair Display", "fontSize": 44, "color": "#4a4a68", "fontWeight": "600" },
+        "rsvpSubtitleStyle": { "fontFamily": "Inter", "fontSize": 18, "color": "#555555", "textAlign": "center" },
+        "customHtmlContent": "<p></p>"
+    }
+};
 // ================================================================================
 // START: TEMPLATE MODAL REFACTOR (UI AND LOGIC UPDATED)
 // ================================================================================
@@ -1425,67 +1800,58 @@ const TemplateModal = ({ isOpen, onClose, onSave, template }) => {
         type: '',
         description: '',
         templateData: '',
-        isActive: true,
+        isActive: false, // 1. Mặc định trạng thái là chưa hiển thị (false)
         loveGiftsButton_isEnabled: false,
         loveGiftsButton_text: '',
         loveGiftsButton_link: '',
     });
 
-    // State lưu trữ cây danh mục chuẩn
+    // State cho cấu trúc danh mục
     const [navTree, setNavTree] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(false);
     const [groups, setGroups] = useState([]);
     const [types, setTypes] = useState([]);
 
-    // 1. Tải cây danh mục chuẩn từ Settings khi mở Modal
     useEffect(() => {
-    const fetchNavTree = async () => {
-        if (isOpen) {
-            try {
-                const response = await AuthService.getSettings();
-                const settings = response?.data || response || {};
-                const tree = settings.headerNav || [];
-                
-                setNavTree(tree);
-                setCategories(tree.map(node => node.title));
-            } catch (error) {
-                console.error(error);
-                toast.error("Không thể tải cấu trúc danh mục chuẩn.");
-            }
-        }
-    };
-    fetchNavTree();
-}, [isOpen]); // Lưu ý: Chỉ cần phụ thuộc vào isOpen để tránh memory leak
+        const fetchNavTree = async () => {
+            if (isOpen) {
+                try {
+                    const response = await AuthService.getSettings();
+                    // SỬA TẠI ĐÂY: Bóc tách data an toàn giống hệt như bộ lọc bên ngoài
+                    const settings = response?.data || response || {};
+                    const tree = settings.headerNav || [];
 
-    // 2. Tự động cập nhật Groups khi Category thay đổi (dựa trên navTree)
+                    setNavTree(tree);
+                    setCategories(tree.map(node => node.title));
+                } catch (error) {
+                    console.error("Lỗi tải danh mục:", error);
+                }
+            }
+        };
+        fetchNavTree();
+    }, [isOpen]);
+
+    // Logic cập nhật Groups/Types tự động dựa trên navTree
     useEffect(() => {
         if (formData.category && navTree.length > 0) {
             const catNode = navTree.find(n => n.title === formData.category);
-            if (catNode && catNode.children) {
-                setGroups(catNode.children.map(n => n.title));
-            } else {
-                setGroups([]);
-            }
+            setGroups(catNode?.children?.map(n => n.title) || []);
         } else {
             setGroups([]);
         }
     }, [formData.category, navTree]);
 
-    // 3. Tự động cập nhật Types khi Group thay đổi (dựa trên navTree)
     useEffect(() => {
         if (formData.category && formData.group && navTree.length > 0) {
             const catNode = navTree.find(n => n.title === formData.category);
             const groupNode = catNode?.children?.find(n => n.title === formData.group);
-            if (groupNode && groupNode.children) {
-                setTypes(groupNode.children.map(n => n.title));
-            } else {
-                setTypes([]);
-            }
+            setTypes(groupNode?.children?.map(n => n.title) || []);
         } else {
             setTypes([]);
         }
     }, [formData.group, formData.category, navTree]);
-    
+
     useEffect(() => {
         if (isOpen) {
             if (template) {
@@ -1506,7 +1872,8 @@ const TemplateModal = ({ isOpen, onClose, onSave, template }) => {
                 setFormData({
                     title: '', category: '', group: '', type: '', description: '',
                     templateData: '{\n  "width": 800,\n  "height": 600,\n  "pages": []\n}',
-                    isActive: true, loveGiftsButton_isEnabled: false, loveGiftsButton_text: '', loveGiftsButton_link: '',
+                    isActive: false, // Thêm mới luôn là false
+                    loveGiftsButton_isEnabled: false, loveGiftsButton_text: '', loveGiftsButton_link: '',
                 });
             }
         }
@@ -1514,116 +1881,176 @@ const TemplateModal = ({ isOpen, onClose, onSave, template }) => {
 
     const handleCategorySelect = (field, value) => {
         if (formData[field] === value) return;
-        // Reset các cấp con khi cấp cha thay đổi
-        if (field === 'category') setFormData(prev => ({ ...prev, category: value, group: '', type: '' }));
-        else if (field === 'group') setFormData(prev => ({ ...prev, group: value, type: '' }));
-        else setFormData(prev => ({ ...prev, [field]: value }));
+
+        setFormData(prev => {
+            // 1. Tạo bản sao của state hiện tại
+            const newState = { ...prev };
+
+            // 2. Cập nhật lại các cấp danh mục theo logic reset cấp con
+            if (field === 'category') {
+                newState.category = value;
+                newState.group = '';
+                newState.type = '';
+            } else if (field === 'group') {
+                newState.group = value;
+                newState.type = '';
+            } else {
+                newState[field] = value;
+            }
+
+            // 3. Xử lý tự động điền JSON (CHỈ áp dụng khi thêm mới - không có template)
+            if (!template) {
+                const valueLower = value.toLowerCase();
+
+                // Nếu tùy chọn vừa click (ở BẤT KỲ cấp nào) có chứa chữ "cưới"
+                if (valueLower.includes('cưới')) {
+                    newState.templateData = JSON.stringify(DEFAULT_WEDDING_TEMPLATE_DATA, null, 2);
+                }
+                // Nếu tùy chọn vừa click có chứa chữ "cảm ơn" hoặc "chúc mừng"
+                else if (valueLower.includes('cảm ơn') || valueLower.includes('chúc mừng')) {
+                    newState.templateData = JSON.stringify(DEFAULT_EMPTY_TEMPLATE_DATA, null, 2);
+                }
+                /* Lưu ý: Không có 'else' ở đây. 
+                  Điều này giúp bảo toàn data nếu người dùng chọn Danh mục "Thiệp cưới" (đổ data cưới),
+                  sau đó chọn tiếp Nhóm "Hiện đại" (chữ "hiện đại" không chứa từ "cưới", nhưng data cưới vẫn được giữ nguyên).
+                */
+            }
+
+            return newState;
+        });
     };
-    
+
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
-    
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Validation cơ bản
         if (!formData.category || !formData.group || !formData.type) {
-            toast.warn('Vui lòng chọn đầy đủ Danh mục, Nhóm và Loại theo cấu trúc chuẩn.');
+            toast.warn('Vui lòng chọn đầy đủ Danh mục, Nhóm và Loại.');
             return;
         }
 
         const saveData = { ...formData };
-        saveData.loveGiftsButton = formData.loveGiftsButton_isEnabled
-            ? { isEnabled: true, text: formData.loveGiftsButton_text, link: formData.loveGiftsButton_link }
-            : null;
-        
-        delete saveData.loveGiftsButton_isEnabled;
-        delete saveData.loveGiftsButton_text;
-        delete saveData.loveGiftsButton_link;
 
-        // Logic tạo ảnh thumbnail tạm thời (giữ nguyên như cũ)
+        // --- BẮT ĐẦU VÁ TẠM: NGẤM NGẦM TẠO ẢNH ĐẠI DIỆN ---
+        // Nếu là thêm mới (không có template)
         if (!template) {
-            toast.info("Đang tạo ảnh đại diện tạm thời...");
-            const canvas = document.createElement('canvas');
-            canvas.width = 400; canvas.height = 600;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#f0f2f5'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#6c757d'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.font = 'bold 28px Arial';
-            const title = formData.title || 'Mẫu Thiệp Mới';
-            ctx.fillText(title.substring(0, 20), canvas.width / 2, canvas.height / 2);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            const generatedFile = dataURLtoFile(dataUrl, 'placeholder_thumbnail.jpg');
-            if (generatedFile) saveData.imgSrc = generatedFile;
+            try {
+                // 1. Dùng Canvas vẽ một tấm ảnh placeholder
+                const canvas = document.createElement('canvas');
+                canvas.width = 400;
+                canvas.height = 600;
+                const ctx = canvas.getContext('2d');
+
+                // Tô nền xám nhạt
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, 400, 600);
+
+                // Viết chữ tạm
+                ctx.fillStyle = '#adb5bd';
+                ctx.font = '20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Đang khởi tạo ảnh...', 200, 300);
+
+                // 2. Chuyển Canvas thành Data URL
+                const dataUrl = canvas.toDataURL('image/jpeg');
+
+                // 3. Gọi hàm dataURLtoFile (có sẵn ở đầu file) để biến thành File object thật
+                saveData.imgSrc = dataURLtoFile(dataUrl, `temp-thumb-${Date.now()}.jpg`);
+            } catch (err) {
+                console.error("Lỗi vá tạm ảnh:", err);
+            }
         }
-        
+        // --- KẾT THÚC VÁ TẠM ---
+
         onSave(saveData);
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={template ? 'Chỉnh sửa Mẫu thiệp' : 'Thêm Mẫu thiệp mới'} size="large">
-            <div className="modal-body">
-                <form onSubmit={handleSubmit}>
-                    <div className="form-grid-2-col">
-                        <div>
-                            <div className="form-group"><label className="form-label">Tiêu đề Mẫu *</label><input type="text" name="title" value={formData.title} onChange={handleChange} className="form-control" required /></div>
-                            
+        <Modal isOpen={isOpen} onClose={onClose} title={template ? 'Chỉnh sửa Mẫu thiệp' : 'Thêm Mẫu thiệp mới'} size="xlarge">
+            <div className="modal-body template-modal-body-no-scroll">
+                <form onSubmit={handleSubmit} className="template-modal-form-wrapper">
+                    <div className="template-modal-grid-layout">
+
+                        {/* CỘT TRÁI: Thông tin cơ bản */}
+                        <div className="template-col-left">
                             <div className="form-group">
+                                <label className="form-label">Tiêu đề Mẫu *</label>
+                                <input type="text" name="title" value={formData.title} onChange={handleChange} className="form-control" required />
+                            </div>
+
+                            <div className="form-group taxonomy-group-compact">
                                 <label className="form-label">Phân loại (Theo cấu trúc Website) *</label>
-                                <div className="taxonomy-selector-grid">
-                                    {/* Cột 1: Category */}
+                                <div className="taxonomy-selector-grid compact-grid">
                                     <div className="taxonomy-selector-column">
                                         <div className="taxonomy-header">Danh mục</div>
                                         {categories.map(cat => (
                                             <div key={cat} className={`taxonomy-selector-item ${formData.category === cat ? 'selected' : ''}`} onClick={() => handleCategorySelect('category', cat)}>{cat}</div>
                                         ))}
                                     </div>
-                                    {/* Cột 2: Group */}
                                     <div className="taxonomy-selector-column">
                                         <div className="taxonomy-header">Nhóm</div>
                                         {formData.category && groups.length > 0 ? (
                                             groups.map(grp => (
                                                 <div key={grp} className={`taxonomy-selector-item ${formData.group === grp ? 'selected' : ''}`} onClick={() => handleCategorySelect('group', grp)}>{grp}</div>
                                             ))
-                                        ) : ( <div className="taxonomy-selector-placeholder"><span>Chọn danh mục...</span></div> )}
+                                        ) : (<div className="taxonomy-selector-placeholder"><span>Chọn danh mục...</span></div>)}
                                     </div>
-                                    {/* Cột 3: Type */}
                                     <div className="taxonomy-selector-column">
                                         <div className="taxonomy-header">Loại</div>
                                         {formData.group && types.length > 0 ? (
                                             types.map(typ => (
                                                 <div key={typ} className={`taxonomy-selector-item ${formData.type === typ ? 'selected' : ''}`} onClick={() => handleCategorySelect('type', typ)}>{typ}</div>
                                             ))
-                                        ) : ( <div className="taxonomy-selector-placeholder"><span>Chọn nhóm...</span></div> )}
+                                        ) : (<div className="taxonomy-selector-placeholder"><span>Chọn nhóm...</span></div>)}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="form-group"><label className="form-label">Mô tả</label>
-                                <CustomEditor data={formData.description || ""} onChange={(data) => { handleChange({ target: { name: 'description', value: data } }); }} />
-                            </div>
-                        </div>
-                        {/* ... (Phần bên phải giữ nguyên) */}
-                        <div>
-                            <div className="form-group">
-                                <label className="form-label">Trạng thái</label>
-                                <div className="publish-toggle">
-                                    <div className="toggle-wrapper">
-                                        <span style={{ color: formData.isActive ? '#027A48' : '#667085' }}>{formData.isActive ? 'Đang hiển thị' : 'Chưa hiển thị'}</span>
-                                        <label className="switch"><input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} /><span className="slider round"></span></label>
-                                    </div>
+                            <div className="form-group flex-grow-editor">
+                                <label className="form-label">Mô tả</label>
+                                {/* Cần đảm bảo CustomEditor của bạn nhận được chiều cao 100% qua CSS */}
+                                <div className="editor-wrapper-compact">
+                                    <CustomEditor data={formData.description || ""} onChange={(data) => { handleChange({ target: { name: 'description', value: data } }); }} />
                                 </div>
                             </div>
-                            <p className="settings-item__description" style={{ marginLeft: 0, marginTop: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                                <ImageIcon size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }}/>
-                                Ảnh đại diện sẽ được hệ thống tự động tạo khi lưu mẫu thiệp mới.
-                            </p>
+                        </div>
+
+                        {/* CỘT PHẢI: Trạng thái & JSON */}
+                        <div className="template-col-right">
+                            {template && (
+                                <div className="form-group status-group-compact">
+                                    <label className="form-label">Trạng thái</label>
+                                    <div className="publish-toggle">
+                                        <div className="toggle-wrapper">
+                                            <span style={{ color: formData.isActive ? '#027A48' : '#667085' }}>{formData.isActive ? 'Đang hiển thị' : 'Chưa hiển thị'}</span>
+                                            <label className="switch"><input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} /><span className="slider round"></span></label>
+                                        </div>
+                                    </div>
+                                    <p className="settings-item__description auto-gen-note">
+                                        Ảnh đại diện sẽ được tự động tạo khi lưu mẫu.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Textarea JSON được ép nở ra lấp đầy chiều cao */}
+                            <div className="form-group flex-grow-editor json-editor-group">
+                                <label className="form-label">Dữ liệu Template (JSON)</label>
+                                <textarea
+                                    name="templateData"
+                                    value={formData.templateData}
+                                    onChange={handleChange}
+                                    className="form-control code-editor fill-height"
+                                // Loại bỏ rows="8" để CSS flex kiểm soát
+                                ></textarea>
+                            </div>
                         </div>
                     </div>
-                  
-                    <div className="form-group"><label className="form-label">Dữ liệu Template (JSON)</label><textarea name="templateData" value={formData.templateData} onChange={handleChange} className="form-control code-editor" rows="8"></textarea></div>
-                    <div className="modal-footer">
+
+                    {/* FOOTER NẰM CỐ ĐỊNH Ở ĐÁY */}
+                    <div className="modal-footer sticky-footer">
                         <button type="button" onClick={onClose} className="btn btn-secondary">Hủy</button>
                         <button type="submit" className="btn btn-primary">{template ? 'Lưu thay đổi' : 'Tiếp theo'}</button>
                     </div>
@@ -1632,6 +2059,9 @@ const TemplateModal = ({ isOpen, onClose, onSave, template }) => {
         </Modal>
     );
 };
+// ================================================================================
+// END: TEMPLATE MODAL REFACTOR
+// ================================================================================
 // ================================================================================
 // END: TEMPLATE MODAL REFACTOR
 // ================================================================================
@@ -1648,12 +2078,51 @@ const SortableBannerItem = ({ banner, index, onUpdate, onRemove, onFileChange })
 
     const handleBannerChange = (field, value) => {
         const newBanner = { ...banner, [field]: value };
-        // Nếu đổi loại media, reset URL của loại cũ
-        if (field === 'mediaType') {
-            if (value === 'image') newBanner.videoUrl = '';
-            if (value === 'video') newBanner.imageUrl = '';
-        }
         onUpdate(index, newBanner);
+    };
+
+    const handleMediaTypeChange = (newType) => {
+        let updatedBanner = { ...banner, mediaType: newType };
+
+        if (newType === 'html') {
+            if (!banner.htmlContent || banner.htmlContent.trim() === '' || banner.htmlContent === '<p></p>') {
+                updatedBanner.htmlContent = generateHtmlLayout();
+            }
+        }
+        onUpdate(index, updatedBanner);
+    };
+
+    // Đã chỉnh sửa: Xóa bỏ border-radius để banner tràn viền, tăng min-height
+    const generateHtmlLayout = () => {
+        const hasVideoUrl = banner.videoUrl && banner.videoUrl.trim() !== '';
+        const mediaTag = hasVideoUrl
+            ? `<video src="${banner.videoUrl}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>`
+            : `<img src="${banner.imageUrl || 'https://placehold.co/1200x400/eaecf0/98a2b3?text=Banner+Nền'}" alt="${banner.title || ''}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />`;
+
+        // Đã thêm CSS phá vỡ container (left: 50%, margin-left: -50vw, width: 100vw) để ép tràn viền
+        return `<div style="position: relative; width: 100vw; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; min-height: 450px; background-color: #f8fafc; overflow: hidden; font-family: sans-serif;">
+  <div style="position: absolute; inset: 0; z-index: 1; pointer-events: none;">
+    ${mediaTag}
+  </div>
+
+  <div style="position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%); pointer-events: none;"></div>
+
+  <div style="position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; justify-content: center; padding: 40px 5%; max-width: 1200px; margin: 0 auto;">
+    <h2 style="margin: 0 0 16px 0; font-size: 36px; color: #ffffff; font-weight: 700; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">
+      ${banner.title || 'Tiêu Đề Banner'}
+    </h2>
+    <p style="margin: 0 0 32px 0; font-size: 18px; color: rgba(255, 255, 255, 0.95); line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.4);">
+      ${banner.subtitle || 'Tiêu đề phụ hoặc mô tả ngắn gọn.'}
+    </p>
+    
+    </div>
+</div>`;
+    };
+
+    const handleForceSyncHtml = () => {
+        if (window.confirm("Hành động này sẽ xóa code HTML hiện tại và gen lại toàn bộ từ đầu bằng Ảnh và Tiêu đề cơ bản. Bạn có chắc chắn?")) {
+            handleBannerChange('htmlContent', generateHtmlLayout());
+        }
     };
 
     const handleBannerFileChange = (e) => {
@@ -1673,8 +2142,7 @@ const SortableBannerItem = ({ banner, index, onUpdate, onRemove, onFileChange })
             onUpdate(index, newBanner);
         }
     };
-    
-    // Xác định mediaType, mặc định là 'image' nếu chưa có
+
     const mediaType = banner.mediaType || 'image';
 
     return (
@@ -1684,23 +2152,24 @@ const SortableBannerItem = ({ banner, index, onUpdate, onRemove, onFileChange })
                     <GripVertical size={20} />
                 </div>
                 <strong className="banner-title" onClick={() => setIsExpanded(!isExpanded)}>
-                    {banner.name || `Banner ${index + 1}`} ({mediaType === 'video' ? 'Video' : 'Ảnh'})
+                    {banner.name || `Banner ${index + 1}`} ({mediaType === 'video' ? 'Video' : mediaType === 'html' ? 'Nâng cao (HTML)' : 'Ảnh'})
                 </strong>
                 <div className="banner-header-actions">
-                     <div className="publish-toggle">
+                    <div className="publish-toggle">
                         <div className="toggle-wrapper">
                             <span>{banner.isEnabled ? 'Đang hiển thị' : 'Đã tắt'}</span>
                             <button type="button" className={`btn-toggle ${banner.isEnabled ? 'active' : ''}`} onClick={() => handleBannerChange('isEnabled', !banner.isEnabled)}>
-                                {banner.isEnabled ? <ToggleRight size={24}/> : <ToggleLeft size={24}/>}
+                                {banner.isEnabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
                             </button>
                         </div>
                     </div>
-                    <button onClick={() => onRemove(index)} className="btn-danger-icon" title="Xóa Banner"><Trash2 size={16}/></button>
+                    <button onClick={() => onRemove(index)} className="btn-danger-icon" title="Xóa Banner"><Trash2 size={16} /></button>
                     <button onClick={() => setIsExpanded(!isExpanded)} className="expand-button">
                         {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
                 </div>
             </div>
+
             {isExpanded && (
                 <div className="banner-editor-content">
                     <div className="form-group">
@@ -1709,49 +2178,82 @@ const SortableBannerItem = ({ banner, index, onUpdate, onRemove, onFileChange })
                     </div>
 
                     <div className="form-group">
-                        <label className="form-label">Loại Banner</label>
+                        <label className="form-label">Chế độ hiển thị</label>
                         <Select
                             value={mediaType}
-                            onChange={(value) => handleBannerChange('mediaType', value)}
+                            onChange={handleMediaTypeChange}
                             style={{ width: '100%' }}
                         >
-                            <Option value="image"><ImageIcon size={16} style={{ marginRight: 8 }}/> Ảnh</Option>
-                            <Option value="video"><VideoIcon size={16} style={{ marginRight: 8 }}/> Video MP4</Option>
+                            <Option value="image"><ImageIcon size={16} style={{ marginRight: 8 }} /> Ảnh cơ bản</Option>
+                            <Option value="video"><VideoIcon size={16} style={{ marginRight: 8 }} /> Video MP4</Option>
+                            <Option value="html"><Layout size={16} style={{ marginRight: 8 }} /> Tùy chỉnh nâng cao (Sinh code HTML)</Option>
                         </Select>
                     </div>
 
-                     <div className="form-group">
-                        <label className="form-label">{mediaType === 'video' ? 'Video Banner (.mp4)' : 'Ảnh Banner'}</label>
-                        <div className="image-upload-preview single">
-                            {mediaType === 'video' ? (
-                                banner.videoUrl && <video src={banner.videoUrl} autoPlay loop muted style={{height: '100px', width: 'auto', objectFit: 'contain'}} />
-                            ) : (
-                                banner.imageUrl && <img src={banner.imageUrl} alt="Banner Preview" className="logo-preview" style={{height: '100px', width: 'auto', objectFit: 'contain'}}/>
-                            )}
-                            <label className="btn btn-secondary">
-                                <Upload size={16}/> { (mediaType === 'video' ? banner.videoUrl : banner.imageUrl) ? 'Thay đổi' : 'Tải lên'}
-                                <input type="file" accept={mediaType === 'video' ? 'video/mp4' : 'image/*'} hidden onChange={handleBannerFileChange}/>
-                            </label>
+                    {mediaType !== 'html' && (
+                        <>
+                            <div className="form-group">
+                                <label className="form-label">{mediaType === 'video' ? 'Video Banner (.mp4)' : 'Ảnh Banner'}</label>
+
+                                {/* ĐÃ FIX: Thêm position: relative, minHeight và borderRadius */}
+                                <div className="image-upload-preview single" style={{ position: 'relative', padding: 0, overflow: 'hidden', border: '1px solid #e2e8f0', minHeight: '220px', backgroundColor: '#f8fafc', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+
+                                    {mediaType === 'video' ? (
+                                        banner.videoUrl && <video src={banner.videoUrl} autoPlay loop muted style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }} />
+                                    ) : (
+                                        // ĐÃ FIX: Ghi đè padding và border của class logo-preview để ảnh full viền
+                                        banner.imageUrl && <img src={banner.imageUrl} alt="Banner Preview" className="logo-preview" style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block', padding: 0, border: 'none' }} />
+                                    )}
+
+                                    {/* ĐÃ FIX: Thêm zIndex, căn chỉnh lại màu sắc và cursor pointer để nút nhạy hơn */}
+                                    <label className="btn" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'rgba(255,255,255,0.95)', color: '#1e293b', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer', zIndex: 10, padding: '8px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'flex', gap: '8px', alignItems: 'center', fontWeight: '500' }}>
+                                        <Upload size={16} /> {(mediaType === 'video' ? banner.videoUrl : banner.imageUrl) ? 'Thay đổi' : 'Tải lên'}
+                                        <input type="file" accept={mediaType === 'video' ? 'video/mp4' : 'image/*'} hidden onChange={handleBannerFileChange} />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Tiêu đề (hiển thị trên banner)</label>
+                                <input type="text" className="form-control" value={banner.title || ''} onChange={(e) => handleBannerChange('title', e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Tiêu đề phụ (hiển thị trên banner)</label>
+                                <input type="text" className="form-control" value={banner.subtitle || ''} onChange={(e) => handleBannerChange('subtitle', e.target.value)} />
+                            </div>
+                        </>
+                    )}
+
+                    {mediaType === 'html' && (
+                        <div className="form-group">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
+                                <label className="form-label" style={{ color: '#1e3a8a', fontWeight: 600, margin: 0 }}>
+                                    Nội dung HTML
+                                </label>
+                                <button type="button" onClick={handleForceSyncHtml} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#eff6ff', color: '#1e40af', borderColor: '#bfdbfe' }}>
+                                    <LayoutTemplate size={14} /> Ghi đè HTML bằng cấu hình Cơ bản
+                                </button>
+                            </div>
+
+                            <CustomEditor
+                                data={banner.htmlContent || ""}
+                                onChange={(data) => handleBannerChange('htmlContent', data)}
+                            />
                         </div>
+                    )}
+
+                    <div className="form-group">
+                        <label className="form-label">Đường dẫn khi click (Link)</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            value={banner.link || ''}
+                            onChange={(e) => handleBannerChange('link', e.target.value)}
+                            placeholder="VD: /shop/san-pham-moi hoặc https://..."
+                        />
                     </div>
 
                     <div className="form-group">
-                        <label className="form-label">Tiêu đề (hiển thị trên banner)</label>
-                        <input type="text" className="form-control" value={banner.title || ''} onChange={(e) => handleBannerChange('title', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                        <label className="form-label">Tiêu đề phụ (hiển thị trên banner)</label>
-                        <input type="text" className="form-control" value={banner.subtitle || ''} onChange={(e) => handleBannerChange('subtitle', e.target.value)} />
-                    </div>
-                   
-                    <div className="form-group">
-                        <label className="form-label">Hoặc dùng Nội dung HTML (sẽ ghi đè lên media và tiêu đề)</label>
-                        <CustomEditor
-                            data={banner.htmlContent || ""}
-                            onChange={(data) => handleBannerChange('htmlContent', data)}
-                        />
-                    </div>
-                     <div className="form-group">
                         <label className="form-label">Hiển thị ở trang</label>
                         <select className="form-control" value={banner.displayPage || 'all'} onChange={(e) => handleBannerChange('displayPage', e.target.value)}>
                             <option value="all">Tất cả các trang</option>
@@ -1761,24 +2263,11 @@ const SortableBannerItem = ({ banner, index, onUpdate, onRemove, onFileChange })
                             <option value="invitations">Mẫu thiệp</option>
                         </select>
                     </div>
-                    {/* START: Add Link Field */}
-                    <div className="form-group">
-                        <label className="form-label">Đường dẫn (Link)</label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            value={banner.link || ''}
-                            onChange={(e) => handleBannerChange('link', e.target.value)}
-                            placeholder="VD: /shop/san-pham-moi hoặc https://..."
-                        />
-                    </div>
-                    {/* END: Add Link Field */}
                 </div>
             )}
         </div>
     );
 };
-
 
 
 const BannerEditor = ({ banners, onUpdate, onFileChange }) => {
@@ -1795,7 +2284,7 @@ const BannerEditor = ({ banners, onUpdate, onFileChange }) => {
             onUpdate('banners', arrayMove(banners, oldIndex, newIndex));
         }
     };
-    
+
     const handleUpdateBanner = (index, newBannerData) => {
         const newBanners = [...banners];
         newBanners[index] = newBannerData;
@@ -1813,7 +2302,7 @@ const BannerEditor = ({ banners, onUpdate, onFileChange }) => {
             videoUrl: '',
             title: '',
             subtitle: '',
-            htmlContent: '<p>Nội dung HTML cho banner...</p>',
+            htmlContent: '',
             link: ''
         };
         onUpdate('banners', [...(banners || []), newBanner]);
@@ -1836,19 +2325,19 @@ const BannerEditor = ({ banners, onUpdate, onFileChange }) => {
                 <SortableContext items={(banners || []).map(b => b.id)} strategy={verticalListSortingStrategy}>
                     <div className="all-banners-container">
                         {(banners || []).map((banner, index) => (
-                           <SortableBannerItem
+                            <SortableBannerItem
                                 key={banner.id}
                                 banner={banner}
                                 index={index}
                                 onUpdate={(idx, data) => handleUpdateBanner(idx, data)}
                                 onRemove={() => removeBanner(index)}
                                 onFileChange={onFileChange}
-                           />
+                            />
                         ))}
                     </div>
                 </SortableContext>
             </DndContext>
-            <button onClick={addBanner} className="btn btn-secondary" style={{marginTop: '1.5rem'}}>
+            <button onClick={addBanner} className="btn btn-secondary" style={{ marginTop: '1.5rem' }}>
                 <PlusCircle size={18} /> Thêm Banner mới
             </button>
         </div>
@@ -1862,25 +2351,34 @@ const SettingsPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [filesToUpload, setFilesToUpload] = useState({});
-    
+
     // --- BẮT ĐẦU SỬA LỖI: LOGIC CHÍNH NẰM Ở ĐÂY ---
     useEffect(() => {
         const fetchAndSyncData = async () => {
             setIsLoading(true);
             try {
-                const settingsResponse = await AuthService.getSettings();
-                let currentSettings = settingsResponse || {};
+                console.log("=== BẮT ĐẦU DEBUG SETTINGS BẰNG LOG ===");
+
+                // Lấy data từ API
+                const response = await AuthService.getSettings();
+                console.log("🔴 BƯỚC 1 - Dữ liệu gốc (Raw Response) từ API:", response);
+
+                // 1. BÓC TÁCH DỮ LIỆU AN TOÀN HƠN
+                // Thêm trường hợp response?.data?.data để đề phòng Axios bọc 1 lớp 'data' 
+                // và backend cũng trả về object có key là 'data'
+                const rawSettings = response?.data?.data || response?.data || response || {};
+                console.log("🟠 BƯỚC 2 - Dữ liệu sau khi bóc tách (rawSettings):", rawSettings);
+
+                // 2. DEEP CLONE ĐỂ TRÁNH MUTATE
+                let currentSettings = _.cloneDeep(rawSettings);
 
                 // **LOGIC CHUYỂN ĐỔI DỮ LIỆU BANNER**
-                // Kiểm tra xem 'banners' có phải là một object (định dạng cũ) và không phải là mảng không.
                 if (currentSettings.banners && typeof currentSettings.banners === 'object' && !Array.isArray(currentSettings.banners)) {
-                    console.log("Phát hiện định dạng banner cũ, đang chuyển đổi...");
-                    // Chuyển đổi object cũ thành mảng mới
+                    console.log("🟡 BƯỚC 3 - Cấu trúc banner cũ được phát hiện, đang chuyển đổi...");
                     currentSettings.banners = Object.entries(currentSettings.banners).map(([key, value]) => {
-                        // value ở đây là object con, ví dụ: { imageUrl: "..." }
                         return {
-                            id: key, // Sử dụng key của object cũ làm ID
-                            name: _.startCase(key.replace(/_/g, ' ')), // Tạo tên dễ đọc từ key
+                            id: key,
+                            name: _.startCase(key.replace(/_/g, ' ')),
                             isEnabled: value.isEnabled !== undefined ? value.isEnabled : true,
                             displayPage: value.displayPage || 'all',
                             htmlContent: value.htmlContent || '',
@@ -1888,15 +2386,17 @@ const SettingsPage = () => {
                         };
                     });
                 }
-                // **KẾT THÚC LOGIC CHUYỂN ĐỔI**
 
-                // Khởi tạo các giá trị mặc định để tránh lỗi
+                // 3. KHỞI TẠO CẤU TRÚC MẶC ĐỊNH CHUẨN
                 _.defaultsDeep(currentSettings, {
                     theme: {
-                        announcementBar: { text: '', isEnabled: false, backgroundImage: '' },
+                        companyName: '',
+                        address: '',
+                        phone: '',
+                        announcementBar: { text: '', isEnabled: false, backgroundImage: '', link: '', backgroundColor: '#333333', textColor: '#ffffff' },
                         logoUrl: null
                     },
-                    banners: [], // Đảm bảo banners luôn là một mảng
+                    banners: [],
                     footer: {
                         socialLinks: [],
                         columns: [],
@@ -1905,7 +2405,10 @@ const SettingsPage = () => {
                     },
                     headerNav: []
                 });
-                
+
+                console.log("🟢 BƯỚC 4 - Dữ liệu sau khi _.defaultsDeep (currentSettings):", currentSettings);
+
+                // 4. SANITIZE DATA
                 if (Array.isArray(currentSettings.footer.socialLinks)) {
                     currentSettings.footer.socialLinks = currentSettings.footer.socialLinks
                         .map(link => (link && link.id && link.name) ? link : null)
@@ -1914,11 +2417,15 @@ const SettingsPage = () => {
                     currentSettings.footer.socialLinks = [];
                 }
 
+                console.log("🔵 BƯỚC 5 - Dữ liệu cuối cùng được đưa vào State (setSettings):", currentSettings);
                 setSettings(currentSettings);
+
             } catch (error) {
+                console.error("Fetch settings error:", error);
                 toast.error("Không thể tải dữ liệu cài đặt. Vui lòng thử lại.");
             } finally {
                 setIsLoading(false);
+                console.log("=== KẾT THÚC DEBUG SETTINGS ===");
             }
         };
         fetchAndSyncData();
@@ -1963,7 +2470,7 @@ const SettingsPage = () => {
             // Xử lý tất cả các file cần upload trong state `filesToUpload`
             for (const [key, file] of Object.entries(filesToUpload)) {
                 formData.append(key, file);
-                
+
                 // Xóa URL object tạm thời (blob:...) khỏi payload gửi đi
                 // Backend sẽ điền URL thật sau khi upload xong
                 const path = key.replace(/__/g, '.');
@@ -1972,9 +2479,9 @@ const SettingsPage = () => {
 
             // Chuyển object settings thành chuỗi JSON
             formData.append('settings', JSON.stringify(settingsPayload));
-            
+
             const response = await AuthService.updateSettings(formData);
-            
+
             setSettings(response.data);
             setFilesToUpload({}); // Reset danh sách file sau khi lưu thành công
             toast.success('Cài đặt đã được lưu thành công!');
@@ -1988,7 +2495,7 @@ const SettingsPage = () => {
     };
 
 
-    
+
     // ... (Giữ nguyên các hàm add/remove cho footer và social links) ...
     const addFooterColumn = () => {
         const newColumns = [...(settings.footer.columns || []), { id: uuidv4(), title: 'Cột Mới', links: [] }];
@@ -2017,7 +2524,7 @@ const SettingsPage = () => {
         const newLinks = settings.footer.socialLinks.filter((_, i) => i !== index);
         handleInputChange('footer.socialLinks', newLinks);
     };
-     const addLegalLink = () => {
+    const addLegalLink = () => {
         const newLinks = [...(settings.footer.legalLinks || []), { id: uuidv4(), text: 'Liên kết mới', url: '#' }];
         handleInputChange('footer.legalLinks', newLinks);
     };
@@ -2028,7 +2535,7 @@ const SettingsPage = () => {
     };
 
     if (isLoading || !settings) return <LoadingSpinner />;
-    
+
     const getPreviewUrl = (value) => {
         if (value instanceof File) return URL.createObjectURL(value);
         return value || '';
@@ -2049,7 +2556,7 @@ const SettingsPage = () => {
                 {/* ... (Giữ nguyên JSX cho General Info & Branding) ... */}
                 <div className="card settings-card">
                     <h3 className="card__title"><ImageIcon size={24} /> Thông tin chung & Branding</h3>
-                     <div className="settings-item">
+                    <div className="settings-item">
                         <div className="settings-item__info">
                             <ImageIcon size={40} className="settings-item__icon" />
                             <div>
@@ -2065,43 +2572,43 @@ const SettingsPage = () => {
                         </div>
                     </div>
                     <div className="form-group"><label className="form-label">Tên công ty</label><input type="text" className="form-control" value={settings.theme.companyName || ''} onChange={(e) => handleInputChange('theme.companyName', e.target.value)} /></div>
-                     <div className="form-group"><label className="form-label">Địa chỉ</label><input type="text" className="form-control" value={settings.theme.address || ''} onChange={(e) => handleInputChange('theme.address', e.target.value)} /></div>
-                     <div className="form-group"><label className="form-label">Số điện thoại (Hotline)</label><input type="text" className="form-control" value={settings.theme.phone || ''} onChange={(e) => handleInputChange('theme.phone', e.target.value)} /></div>
+                    <div className="form-group"><label className="form-label">Địa chỉ</label><input type="text" className="form-control" value={settings.theme.address || ''} onChange={(e) => handleInputChange('theme.address', e.target.value)} /></div>
+                    <div className="form-group"><label className="form-label">Số điện thoại (Hotline)</label><input type="text" className="form-control" value={settings.theme.phone || ''} onChange={(e) => handleInputChange('theme.phone', e.target.value)} /></div>
                     <div className="settings-item">
                         <div className="settings-item__info"><Type size={40} className="settings-item__icon" /><div><h4 className="settings-item__title">Thanh thông báo</h4><p className="settings-item__description">Bật/tắt và chỉnh sửa nội dung.</p></div></div>
-                        <div className="settings-item__control" style={{flexDirection: 'column', alignItems: 'flex-end', gap: '1rem', width: '60%'}}>
+                        <div className="settings-item__control" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '1rem', width: '60%' }}>
                             <input type="text" className="form-control" placeholder="Nhập nội dung..." value={settings.theme.announcementBar.text} onChange={(e) => handleInputChange('theme.announcementBar.text', e.target.value)} />
                             <input type="text" className="form-control" placeholder="Đường dẫn (VD: /shop)" value={settings.theme.announcementBar.link || ''} onChange={(e) => handleInputChange('theme.announcementBar.link', e.target.value)} />
-                             <div style={{display: 'flex', gap: '1rem', width: '100%', alignItems: 'center'}}>
-                                <label className="form-label" style={{marginBottom: 0, whiteSpace: 'nowrap'}}>Màu nền:</label>
-                                <input type="color" className="form-control" title="Chọn màu nền" value={settings.theme.announcementBar.backgroundColor || '#333333'} onChange={(e) => handleInputChange('theme.announcementBar.backgroundColor', e.target.value)} style={{height: '40px'}}/>
-                                <label className="form-label" style={{marginBottom: 0, whiteSpace: 'nowrap'}}>Màu chữ:</label>
-                                <input type="color" className="form-control" title="Chọn màu chữ" value={settings.theme.announcementBar.textColor || '#ffffff'} onChange={(e) => handleInputChange('theme.announcementBar.textColor', e.target.value)} style={{height: '40px'}} />
+                            <div style={{ display: 'flex', gap: '1rem', width: '100%', alignItems: 'center' }}>
+                                <label className="form-label" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>Màu nền:</label>
+                                <input type="color" className="form-control" title="Chọn màu nền" value={settings.theme.announcementBar.backgroundColor || '#333333'} onChange={(e) => handleInputChange('theme.announcementBar.backgroundColor', e.target.value)} style={{ height: '40px' }} />
+                                <label className="form-label" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>Màu chữ:</label>
+                                <input type="color" className="form-control" title="Chọn màu chữ" value={settings.theme.announcementBar.textColor || '#ffffff'} onChange={(e) => handleInputChange('theme.announcementBar.textColor', e.target.value)} style={{ height: '40px' }} />
                             </div>
-                            <div className="form-group" style={{width: '100%'}}>
+                            <div className="form-group" style={{ width: '100%' }}>
                                 <label className="form-label">Ảnh nền (Tùy chọn)</label>
                                 <div className="image-upload-preview single">
-                                    <img 
-                                        src={getPreviewUrl(settings.theme?.announcementBar?.backgroundImage) || 'https://placehold.co/200x50/F8F9FA/B0C7EE?text=Ảnh+nền'} 
-                                        alt="Preview" 
-                                        style={{height: '50px', width: 'auto', objectFit: 'cover'}}
+                                    <img
+                                        src={getPreviewUrl(settings.theme?.announcementBar?.backgroundImage) || 'https://placehold.co/200x50/F8F9FA/B0C7EE?text=Ảnh+nền'}
+                                        alt="Preview"
+                                        style={{ height: '50px', width: 'auto', objectFit: 'cover' }}
                                     />
                                     <label className="btn btn-secondary btn-sm">
-                                        <Upload size={16}/> {getPreviewUrl(settings.theme?.announcementBar?.backgroundImage) ? 'Thay đổi' : 'Tải lên'}
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            hidden 
+                                        <Upload size={16} /> {getPreviewUrl(settings.theme?.announcementBar?.backgroundImage) ? 'Thay đổi' : 'Tải lên'}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            hidden
                                             onChange={(e) => handleFileChange('theme.announcementBar.backgroundImage', e.target.files[0])}
                                         />
                                     </label>
-                                    {(getPreviewUrl(settings.theme?.announcementBar?.backgroundImage)) && 
-                                        <button 
-                                            type="button" 
-                                            onClick={() => handleInputChange('theme.announcementBar.backgroundImage', '')} 
-                                            className="delete-btn" 
+                                    {(getPreviewUrl(settings.theme?.announcementBar?.backgroundImage)) &&
+                                        <button
+                                            type="button"
+                                            onClick={() => handleInputChange('theme.announcementBar.backgroundImage', '')}
+                                            className="delete-btn"
                                             title="Xóa ảnh">
-                                            <Trash2 size={16}/>
+                                            <Trash2 size={16} />
                                         </button>
                                     }
                                 </div>
@@ -2119,7 +2626,7 @@ const SettingsPage = () => {
                                 sx={{ alignSelf: 'flex-start', color: 'var(--admin-text-primary)' }}
                             />
                             <button className={`btn-toggle ${settings.theme.announcementBar.isEnabled ? 'active' : ''}`} onClick={() => handleInputChange('theme.announcementBar.isEnabled', !settings.theme.announcementBar.isEnabled)}>
-                                {settings.theme.announcementBar.isEnabled ? <ToggleRight size={24}/> : <ToggleLeft size={24}/>}
+                                {settings.theme.announcementBar.isEnabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
                                 <span>{settings.theme.announcementBar.isEnabled ? 'Đang bật' : 'Đang tắt'}</span>
                             </button>
                         </div>
@@ -2132,36 +2639,36 @@ const SettingsPage = () => {
                     onFileChange={handleFileChange}
                 />
                 {/* END MODIFICATION */}
-                <OccasionOrderManager />
+                <HomepageBlockManager />
                 {/* ... (Giữ nguyên JSX cho Footer Management) ... */}
-                 <div className="card settings-card">
+                <div className="card settings-card">
                     <h3 className="card__title"><LinkIcon size={24} /> Quản lý Footer</h3>
                     <div className="footer-section-divider">
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h4 className="footer-section-title">Liên kết Mạng xã hội</h4>
-                            <button onClick={addSocialLink} className="btn btn-green"><PlusCircle size={18}/> Thêm liên kết</button>
+                            <button onClick={addSocialLink} className="btn btn-green"><PlusCircle size={18} /> Thêm liên kết</button>
                         </div>
                         <div className="footer-links-editor">
-                             {(settings.footer?.socialLinks || []).map((link, index) => (
-                                 <div key={link.id} className="social-link-item">
-                                     <div className="social-icon-uploader">
-                                         {getPreviewUrl(link.icon) ? (
+                            {(settings.footer?.socialLinks || []).map((link, index) => (
+                                <div key={link.id} className="social-link-item">
+                                    <div className="social-icon-uploader">
+                                        {getPreviewUrl(link.icon) ? (
                                             <img src={getPreviewUrl(link.icon)} alt="Preview" className="icon-preview" />
-                                         ) : (
-                                            <div className="icon-placeholder"><ImageIcon size={24}/></div>
-                                         )}
-                                         <input
+                                        ) : (
+                                            <div className="icon-placeholder"><ImageIcon size={24} /></div>
+                                        )}
+                                        <input
                                             type="file"
                                             id={`social-icon-upload-${index}`}
-                                            style={{display: 'none'}}
+                                            style={{ display: 'none' }}
                                             accept="image/png, image/jpeg, image/svg+xml"
                                             onChange={e => handleFileChange(`footer.socialLinks[${index}].icon`, e.target.files[0])}
-                                         />
-                                         <label htmlFor={`social-icon-upload-${index}`} className="btn btn-secondary btn-upload">
-                                              Tải icon
-                                         </label>
-                                     </div>
-                                     <div className="social-link-inputs">
+                                        />
+                                        <label htmlFor={`social-icon-upload-${index}`} className="btn btn-secondary btn-upload">
+                                            Tải icon
+                                        </label>
+                                    </div>
+                                    <div className="social-link-inputs">
                                         <div className="form-group">
                                             <label className="form-label">Tên nền tảng</label>
                                             <input type="text" value={link.name} onChange={e => handleInputChange(`footer.socialLinks[${index}].name`, e.target.value)} placeholder="VD: Facebook" className="form-control" />
@@ -2170,15 +2677,15 @@ const SettingsPage = () => {
                                             <label className="form-label">URL</label>
                                             <input type="text" value={link.url} onChange={e => handleInputChange(`footer.socialLinks[${index}].url`, e.target.value)} placeholder="https://..." className="form-control" />
                                         </div>
-                                     </div>
-                                     <button onClick={() => removeSocialLink(index)} className="delete-btn"><Trash2 size={20} /></button>
-                                 </div>
-                             ))}
+                                    </div>
+                                    <button onClick={() => removeSocialLink(index)} className="delete-btn"><Trash2 size={20} /></button>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
                     <div className="footer-section-divider">
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}><h4 className="footer-section-title">Các Cột trong Footer</h4><button onClick={addFooterColumn} className="btn btn-green"><PlusCircle size={18}/> Thêm Cột</button></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><h4 className="footer-section-title">Các Cột trong Footer</h4><button onClick={addFooterColumn} className="btn btn-green"><PlusCircle size={18} /> Thêm Cột</button></div>
                         <div>
                             <p>*Tạo trang bên tab quản lí bài viết, sau đó dán đường dẫn vào các danh mục tương ứng</p>
                         </div>
@@ -2198,7 +2705,7 @@ const SettingsPage = () => {
                                             </div>
                                         ))}
                                     </div>
-                                    <button onClick={() => addFooterLink(colIndex)} className="btn btn-secondary btn-add-link"><PlusCircle size={16}/> Thêm liên kết</button>
+                                    <button onClick={() => addFooterLink(colIndex)} className="btn btn-secondary btn-add-link"><PlusCircle size={16} /> Thêm liên kết</button>
                                 </div>
                             ))}
                         </div>
@@ -2206,9 +2713,9 @@ const SettingsPage = () => {
                     </div>
 
                     <div className="footer-section-divider">
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h4 className="footer-section-title">Liên kết Pháp lý (Chân trang)</h4>
-                            <button onClick={addLegalLink} className="btn btn-green"><PlusCircle size={18}/> Thêm liên kết</button>
+                            <button onClick={addLegalLink} className="btn btn-green"><PlusCircle size={18} /> Thêm liên kết</button>
                         </div>
                         <div className="footer-links-editor">
                             {(settings.footer?.legalLinks || []).map((link, index) => (
@@ -2236,23 +2743,25 @@ const SettingsPage = () => {
 // Main AdminDashboard Component (UPDATED WITH NEW ROUTES)
 //================================================================================
 export const AdminDashboard = () => {
-  return (
-    <Routes>
-        <Route path="/" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-            <Route index element={<DashboardPage />} />
-            <Route path="users" element={<UserManagementPage />} />
-            <Route path="products" element={<ProductManagementPage />} />
-            <Route path="templates" element={<TemplateManagementPage />} />
-            <Route path="design-assets" element={<DesignAssetManagementPage />} />
-            <Route path="templates/design/:templateId?" element={<InvitationDesign />} />
-            <Route path="categories" element={<TaxonomyManagementPage />} /> {/* Route mới */}
-            <Route path="pages" element={<PageManagementPage />} />
-            <Route path="pages/create" element={<PageEditPage />} />        
-            <Route path="pages/edit/:id" element={<PageEditPage />} />      
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="seo" element={<SeoManagementPage />} />
-            <Route path="fonts" element={<FontManagementPage />} />
-        </Route>
-    </Routes>
-  );
+    return (
+        <Routes>
+            <Route path="/" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                <Route index element={<DashboardPage />} />
+                <Route path="users" element={<UserManagementPage />} />
+                <Route path="products" element={<ProductManagementPage />} />
+                <Route path="templates" element={<TemplateManagementPage />} />
+                <Route path="template-blocks" element={<TemplateBlockManagement />} />
+                <Route path="design-assets" element={<DesignAssetManagementPage />} />
+                <Route path="templates/design/:templateId?" element={<InvitationDesign />} />
+                <Route path="categories" element={<TaxonomyManagementPage />} /> {/* Route mới */}
+                <Route path="pages" element={<PageManagementPage />} />
+                <Route path="pages/create" element={<PageEditPage />} />
+                <Route path="pages/edit/:id" element={<PageEditPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="seo" element={<SeoManagementPage />} />
+                <Route path="fonts" element={<FontManagementPage />} />
+                <Route path="media" element={<MediaManagementPage />} />
+            </Route>
+        </Routes>
+    );
 };
