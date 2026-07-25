@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Edit2, Trash2, Search, Filter, Eye,
   CheckCircle, XCircle, FileText, Globe, AlertTriangle,
@@ -57,9 +57,9 @@ const PageManagementPage = () => {
   };
 
   // Helper: Cập nhật lại danh mục khi thao tác bên Tab quản lý danh mục
-  const handleCategoriesUpdate = (updatedCategories) => {
+  const handleCategoriesUpdate = useCallback((updatedCategories) => {
     setCategories(updatedCategories);
-  };
+  }, []);
 
   // 2. Fetch Pages (Chỉ gọi khi đang ở Tab 'content')
   useEffect(() => {

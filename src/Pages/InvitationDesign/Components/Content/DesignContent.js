@@ -118,7 +118,7 @@ const LocationMarker = ({ position, setPosition, setAddressText, onLocationChang
                     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
                     { headers: { 'Accept-Language': 'vi' } } // Ưu tiên tiếng Việt
                 );
-                
+
                 const address = response.data.display_name || 'Không tìm thấy địa chỉ';
                 setAddressText(address);
                 onLocationChange({ lat, lng, address });
@@ -138,7 +138,7 @@ const MapPickerEditor = ({ location, onLocationChange }) => {
     const [mapCenter, setMapCenter] = useState(location?.lat ? location : defaultCenter);
     const [addressText, setAddressText] = useState(location?.address || '');
 
-    useEffect(() => { 
+    useEffect(() => {
         if (location?.lat && location?.lng) {
             setMapCenter({ lat: location.lat, lng: location.lng });
         }
@@ -156,19 +156,19 @@ const MapPickerEditor = ({ location, onLocationChange }) => {
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField 
-                fullWidth 
-                variant="outlined" 
-                placeholder="Nhập địa chỉ hoặc click trên bản đồ để chọn..." 
+            <TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Nhập địa chỉ hoặc click trên bản đồ để chọn..."
                 value={addressText}
                 onChange={handleAddressChange}
             />
-            
+
             <Box sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', height: '250px' }}>
                 {/* Thuộc tính key giúp map render lại nếu tọa độ mặc định thay đổi lớn */}
-                <MapContainer 
-                    center={[mapCenter.lat, mapCenter.lng]} 
-                    zoom={15} 
+                <MapContainer
+                    center={[mapCenter.lat, mapCenter.lng]}
+                    zoom={15}
                     style={{ height: '100%', width: '100%' }}
                     scrollWheelZoom={true}
                 >
@@ -177,9 +177,9 @@ const MapPickerEditor = ({ location, onLocationChange }) => {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    <LocationMarker 
-                        position={mapCenter} 
-                        setPosition={setMapCenter} 
+                    <LocationMarker
+                        position={mapCenter}
+                        setPosition={setMapCenter}
                         setAddressText={setAddressText}
                         onLocationChange={onLocationChange}
                     />
@@ -193,7 +193,7 @@ const addOriginQueryParam = (url) => {
     if (!url || typeof url !== 'string' || !url.startsWith('http')) {
         return url;
     }
-    
+
     try {
         const urlObject = new URL(url);
         const hostname = window.location.hostname; // Lấy tên miền hiện tại
@@ -315,7 +315,7 @@ const IntegratedSidebarPanel = ({
             onBackgroundImageChange(file);
         }
         if (event.currentTarget) {
-           event.currentTarget.value = null;
+            event.currentTarget.value = null;
         }
     };
     return (
@@ -392,7 +392,7 @@ const IntegratedSidebarPanel = ({
                 {currentPageId && currentItems.length > 0 ? (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndItems}>
                         <SortableContext items={currentItems.map(i => i.id)} strategy={verticalListSortingStrategy}>
-                             <LayersPanel
+                            <LayersPanel
                                 items={currentItems}
                                 selectedItemId={selectedItemId}
                                 onSelectItem={onSelectItem}
@@ -425,7 +425,7 @@ const CustomHtmlPreview = ({ settings, onSelectField, selectedFieldKey }) => (
             selectedFieldKey={selectedFieldKey}
         >
             <Box
-                className="tiptap-content1" 
+                className="tiptap-content1"
                 dangerouslySetInnerHTML={{ __html: settings.customHtmlContent || '<p>Nhấp để thêm nội dung của bạn...</p>' }}
                 sx={{
                     padding: 2,
@@ -456,16 +456,20 @@ const AVAILABLE_BLOCKS = {
 const SortableBlockWrapper = ({ id, blockType, children, onSelectBlock, onRemoveBlock, isSelected }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
     const isBanner = blockType === 'BANNER_CAROUSEL';
+
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        border: `2px dashed ${isSelected ? '#3B82F6' : 'transparent'}`,
-        backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+        // Loại bỏ border đứt nét nếu là banner để ảnh tràn sát mép
+        border: isBanner ? 'none' : `2px dashed ${isSelected ? '#3B82F6' : 'transparent'}`,
+        backgroundColor: isSelected && !isBanner ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
         borderRadius: isBanner ? '0px' : '12px',
         position: 'relative',
         padding: isBanner ? '0' : '16px',
-        marginBottom: '16px',
-        overflow: 'hidden'
+        marginBottom: isBanner ? '0' : '16px', // Bỏ margin bottom để liền mạch với khối dưới
+        overflow: 'hidden',
+        width: '100%', // Ép full-width
+        display: 'block'
     };
     const blockConfig = AVAILABLE_BLOCKS[blockType] || {};
     const isRemovable = !blockConfig.required;
@@ -525,7 +529,7 @@ const EditableWrapper = ({ fieldKey, onSelectField, selectedFieldKey, children, 
             {children}
             {isSelected && !onDeleteItem && <EditIcon sx={{ position: 'absolute', top: 8, right: 8, color: 'primary.main', fontSize: 16, background: 'white', borderRadius: '50%', p: 0.5, zIndex: 10 }} />}
             {onDeleteItem && (
-                 <Tooltip title="Xóa mục này">
+                <Tooltip title="Xóa mục này">
                     <IconButton
                         className="delete-button"
                         size="small"
@@ -564,19 +568,13 @@ const SectionHeader = ({ title, subtitle, onSelectField, selectedFieldKey, title
 );
 const BannerCarouselPreview = ({ settings, onSelectField, selectedFieldKey }) => {
     const images = settings.bannerImages || [];
-
-    // Hàm an toàn để lấy URL, tránh lỗi
+    // Hàm an toàn lấy URL, tránh lỗi
     const getImageUrl = (image) => {
         if (!image) return '';
-        // 1. Ảnh đã có URL từ server
         if (typeof image.url === 'string' && image.url) return image.url;
-        // 2. Ảnh mới tải lên đã có URL xem trước (preview)
         if (typeof image.preview === 'string' && image.preview) return image.preview;
-        // 3. Ảnh mới tải lên là một đối tượng File
         if (image.file instanceof File) return URL.createObjectURL(image.file);
-        // 4. Trường hợp dữ liệu chỉ là một chuỗi URL
         if (typeof image === 'string') return image;
-        // Nếu không có nguồn hợp lệ, trả về chuỗi rỗng
         return '';
     };
 
@@ -584,8 +582,14 @@ const BannerCarouselPreview = ({ settings, onSelectField, selectedFieldKey }) =>
     const finalImageUrl = getImageUrl(firstImage);
 
     return (
-        <EditableWrapper fieldKey="bannerImages" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey} sx={{ p: 0, border: 'none' }}>
-            <Box className="modern-banner" sx={{ height: '300px', position: 'relative' }}>
+        <EditableWrapper
+            fieldKey="bannerImages"
+            onSelectField={onSelectField}
+            selectedFieldKey={selectedFieldKey}
+            // Thêm width: '100%', display: 'block' và bỏ bo góc
+            sx={{ p: 0, border: 'none', borderRadius: 0, width: '100%', display: 'block' }}
+        >
+            <Box className="modern-banner" sx={{ width: '100%', height: { xs: '250px', md: '350px', lg: '450px' }, position: 'relative' }}>
                 {finalImageUrl ? (
                     <Box
                         sx={{
@@ -594,13 +598,14 @@ const BannerCarouselPreview = ({ settings, onSelectField, selectedFieldKey }) =>
                             backgroundImage: `url(${finalImageUrl})`,
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat' // Đảm bảo ảnh không bị lặp
                         }}
                     >
-                        <Box className="modern-slide-overlay" />
+                        <Box className="modern-slide-overlay" sx={{ width: '100%', height: '100%' }} />
                     </Box>
                 ) : (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', bgcolor: 'grey.200' }}>
-                        <Typography color="text.secondary">Chưa có ảnh banner. Nhấp để thêm.</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', bgcolor: 'grey.200', width: '100%' }}>
+                        <Typography color="text.secondary">Chưa có ảnh banner. Nhấn để thêm.</Typography>
                     </Box>
                 )}
             </Box>
@@ -624,16 +629,16 @@ const CoupleInfoPreview = ({ settings, onSelectField, selectedFieldKey, onUpdate
     // Lưu ý: Bạn cần đảm bảo hàm cha truyền prop `setEventSettings` hoặc tạo hàm update ở đây
     // Ở đoạn code gốc DesignContent, component cha quản lý state settings.
     // Chúng ta cần inject khả năng update settings con vào đây.
-    
+
     // Giả sử DesignContent truyền prop updateSetting hoặc chúng ta dùng cơ chế onSelectField để trigger update
     // Tuy nhiên, cách tốt nhất là DesignContent nên truyền hàm setSettings xuống.
     // Ở đây tôi sẽ giả định props được truyền xuống bao gồm setSettings (xem Bước 3).
-    
+
     const handleUpdatePos = (type, newPos) => {
-         // type: 'groom' | 'bride'
-         const key = `${type}ImagePosition`;
-         // Gọi hàm update settings từ cha (chúng ta sẽ sửa cha sau)
-         onUpdateSetting(key, newPos);
+        // type: 'groom' | 'bride'
+        const key = `${type}ImagePosition`;
+        // Gọi hàm update settings từ cha (chúng ta sẽ sửa cha sau)
+        onUpdateSetting(key, newPos);
     };
 
     const [editingTarget, setEditingTarget] = useState(null); // 'groom' | 'bride' | null
@@ -654,7 +659,7 @@ const CoupleInfoPreview = ({ settings, onSelectField, selectedFieldKey, onUpdate
                 {/* --- CHÚ RỂ --- */}
                 <Box className="modern-couple-card">
                     <EditableWrapper fieldKey="groomImageUrl" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
-                        <ImageCropper 
+                        <ImageCropper
                             imageSrc={settings.groomImageUrl instanceof File ? URL.createObjectURL(settings.groomImageUrl) : (settings.groomImageUrl || 'https://placehold.co/180x180/EBF1FB/B0C7EE?text=Ảnh+CR')}
                             position={settings.groomImagePosition}
                             isEditing={editingTarget === 'groom'}
@@ -667,7 +672,7 @@ const CoupleInfoPreview = ({ settings, onSelectField, selectedFieldKey, onUpdate
                         <EditableWrapper fieldKey="groomLabel" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
                             <Typography sx={{ ...settings.groomLabelStyle, minHeight: '20px', mb: 0.5 }}>{settings.groomLabel || 'Nhà trai'}</Typography>
                         </EditableWrapper>
-                        
+
                         <EditableWrapper fieldKey="groomName" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
                             <Typography className="couple-name" sx={{ ...settings.groomNameStyle, minHeight: '30px' }}>{settings.groomName || 'Tên chú rể'}</Typography>
                         </EditableWrapper>
@@ -682,7 +687,7 @@ const CoupleInfoPreview = ({ settings, onSelectField, selectedFieldKey, onUpdate
                 {/* --- CÔ DÂU --- */}
                 <Box className="modern-couple-card">
                     <EditableWrapper fieldKey="brideImageUrl" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
-                         <ImageCropper 
+                        <ImageCropper
                             imageSrc={settings.brideImageUrl instanceof File ? URL.createObjectURL(settings.brideImageUrl) : (settings.brideImageUrl || 'https://placehold.co/180x180/EBF1FB/B0C7EE?text=Ảnh+CD')}
                             position={settings.brideImagePosition}
                             isEditing={editingTarget === 'bride'}
@@ -764,233 +769,233 @@ const EventSchedulePreview = ({ settings, onEditItem, onSelectField, selectedFie
     </Box>
 );
 const PannableImageFrame = ({ item, onUpdateItem, onSelectItem }) => {
-  // 1. Refs & State
-  const frameRef = useRef(null);
-  const imageRef = useRef(null);
-  const [position, setPosition] = useState(item.imagePosition || { x: 0, y: 0 });
-  const isDraggingRef = useRef(false);
-  const pointerIdRef = useRef(null);
-  const dragStartRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
+    // 1. Refs & State
+    const frameRef = useRef(null);
+    const imageRef = useRef(null);
+    const [position, setPosition] = useState(item.imagePosition || { x: 0, y: 0 });
+    const isDraggingRef = useRef(false);
+    const pointerIdRef = useRef(null);
+    const dragStartRef = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0 });
 
-  const isEditing = item.isEditing && !item.locked;
-  
-  // 2. Effects
-  
-  /**
-   * Đồng bộ state 'position' nội bộ nếu 'item.imagePosition' thay đổi từ bên ngoài.
-   */
-  useEffect(() => {
-    if (!isDraggingRef.current) {
-      setPosition(item.imagePosition || { x: 0, y: 0 });
-    }
-  }, [item.imagePosition]);
+    const isEditing = item.isEditing && !item.locked;
 
-  // 4. Logic tính toán (Clamping) - Đã bọc trong useCallback
-  /**
-   * Hàm tính toán giới hạn kéo (clamp)
-   */
-  const clampPosition = useCallback((newX, newY) => {
-    if (!frameRef.current || !imageRef.current || !imageRef.current.naturalWidth) {
-      return { x: newX, y: newY };
-    }
+    // 2. Effects
 
-    const frameW = frameRef.current.clientWidth;
-    const frameH = frameRef.current.clientHeight;
-    const naturalW = imageRef.current.naturalWidth;
-    const naturalH = imageRef.current.naturalHeight;
-    const frameRatio = frameW / frameH;
-    const naturalRatio = naturalW / naturalH;
+    /**
+     * Đồng bộ state 'position' nội bộ nếu 'item.imagePosition' thay đổi từ bên ngoài.
+     */
+    useEffect(() => {
+        if (!isDraggingRef.current) {
+            setPosition(item.imagePosition || { x: 0, y: 0 });
+        }
+    }, [item.imagePosition]);
 
-    let coveredImgWidth, coveredImgHeight;
-    
-    if (naturalRatio > frameRatio) {
-      coveredImgHeight = frameH;
-      coveredImgWidth = frameH * naturalRatio;
-    } else {
-      coveredImgWidth = frameW;
-      coveredImgHeight = frameW / naturalRatio;
-    }
+    // 4. Logic tính toán (Clamping) - Đã bọc trong useCallback
+    /**
+     * Hàm tính toán giới hạn kéo (clamp)
+     */
+    const clampPosition = useCallback((newX, newY) => {
+        if (!frameRef.current || !imageRef.current || !imageRef.current.naturalWidth) {
+            return { x: newX, y: newY };
+        }
 
-    const scaledImgW = coveredImgWidth * EDIT_SCALE;
-    const scaledImgH = coveredImgHeight * EDIT_SCALE;
+        const frameW = frameRef.current.clientWidth;
+        const frameH = frameRef.current.clientHeight;
+        const naturalW = imageRef.current.naturalWidth;
+        const naturalH = imageRef.current.naturalHeight;
+        const frameRatio = frameW / frameH;
+        const naturalRatio = naturalW / naturalH;
 
-    const maxOffsetX = Math.max(0, (scaledImgW - frameW) / 2);
-    const maxOffsetY = Math.max(0, (scaledImgH - frameH) / 2);
+        let coveredImgWidth, coveredImgHeight;
 
-    const clampedX = Math.max(-maxOffsetX, Math.min(maxOffsetX, newX));
-    const clampedY = Math.max(-maxOffsetY, Math.min(maxOffsetY, newY));
+        if (naturalRatio > frameRatio) {
+            coveredImgHeight = frameH;
+            coveredImgWidth = frameH * naturalRatio;
+        } else {
+            coveredImgWidth = frameW;
+            coveredImgHeight = frameW / naturalRatio;
+        }
 
-    return { x: clampedX, y: clampedY };
-  }, []); // Refs là stable, không cần đưa vào dependency array
+        const scaledImgW = coveredImgWidth * EDIT_SCALE;
+        const scaledImgH = coveredImgHeight * EDIT_SCALE;
 
-  // 3. Event Handlers (ĐÃ SỬA LỖI)
+        const maxOffsetX = Math.max(0, (scaledImgW - frameW) / 2);
+        const maxOffsetY = Math.max(0, (scaledImgH - frameH) / 2);
 
-  // --- HÀM POINTER MOVE (Đã di chuyển ra ngoài và bọc bằng useCallback) ---
-  const handlePointerMove = useCallback((e) => {
-    if (!isDraggingRef.current || e.pointerId !== pointerIdRef.current) return;
+        const clampedX = Math.max(-maxOffsetX, Math.min(maxOffsetX, newX));
+        const clampedY = Math.max(-maxOffsetY, Math.min(maxOffsetY, newY));
 
-    const dx = e.clientX - dragStartRef.current.startX;
-    const dy = e.clientY - dragStartRef.current.startY;
-    const newX = dragStartRef.current.startPosX + dx;
-    const newY = dragStartRef.current.startPosY + dy;
+        return { x: clampedX, y: clampedY };
+    }, []); // Refs là stable, không cần đưa vào dependency array
 
-    const clampedPos = clampPosition(newX, newY);
-    setPosition(clampedPos);
-  }, [clampPosition]); // Phụ thuộc vào clampPosition
+    // 3. Event Handlers (ĐÃ SỬA LỖI)
 
-  // --- HÀM POINTER UP (Đã di chuyển ra ngoài và bọc bằng useCallback) ---
-  const handlePointerUp = useCallback((e) => {
-    if (!isDraggingRef.current || (e.pointerId !== pointerIdRef.current && e.type !== 'pointercancel')) return;
+    // --- HÀM POINTER MOVE (Đã di chuyển ra ngoài và bọc bằng useCallback) ---
+    const handlePointerMove = useCallback((e) => {
+        if (!isDraggingRef.current || e.pointerId !== pointerIdRef.current) return;
 
-    isDraggingRef.current = false;
-    
-    try {
-      // Thêm kiểm tra 'e.target' và 'releasePointerCapture'
-      if (e.target && typeof e.target.releasePointerCapture === 'function') {
-        e.target.releasePointerCapture(pointerIdRef.current);
-      }
-    } catch (err) {
-      // Bỏ qua lỗi (ví dụ: capture đã bị mất)
-    }
-    
-    pointerIdRef.current = null;
-    
-    // Gỡ bỏ listener khỏi window
-    window.removeEventListener('pointermove', handlePointerMove);
-    window.removeEventListener('pointerup', handlePointerUp);
-    window.removeEventListener('pointercancel', handlePointerUp);
-  }, [handlePointerMove]); // Phụ thuộc vào handlePointerMove
+        const dx = e.clientX - dragStartRef.current.startX;
+        const dy = e.clientY - dragStartRef.current.startY;
+        const newX = dragStartRef.current.startPosX + dx;
+        const newY = dragStartRef.current.startPosY + dy;
 
-  // --- UseEffect ĐÃ SỬA LẠI (Chỉ dùng để cleanup khi unmount) ---
-  useEffect(() => {
-    // Effect này chỉ dùng để dọn dẹp listener nếu component bị unmount
-    // TRONG KHI đang kéo (isDraggingRef.current === true).
-    return () => {
-      if (isDraggingRef.current) {
+        const clampedPos = clampPosition(newX, newY);
+        setPosition(clampedPos);
+    }, [clampPosition]); // Phụ thuộc vào clampPosition
+
+    // --- HÀM POINTER UP (Đã di chuyển ra ngoài và bọc bằng useCallback) ---
+    const handlePointerUp = useCallback((e) => {
+        if (!isDraggingRef.current || (e.pointerId !== pointerIdRef.current && e.type !== 'pointercancel')) return;
+
+        isDraggingRef.current = false;
+
+        try {
+            // Thêm kiểm tra 'e.target' và 'releasePointerCapture'
+            if (e.target && typeof e.target.releasePointerCapture === 'function') {
+                e.target.releasePointerCapture(pointerIdRef.current);
+            }
+        } catch (err) {
+            // Bỏ qua lỗi (ví dụ: capture đã bị mất)
+        }
+
+        pointerIdRef.current = null;
+
+        // Gỡ bỏ listener khỏi window
         window.removeEventListener('pointermove', handlePointerMove);
         window.removeEventListener('pointerup', handlePointerUp);
         window.removeEventListener('pointercancel', handlePointerUp);
-      }
-    };
-  }, [handlePointerMove, handlePointerUp]); // Phụ thuộc vào các hàm callback đã định nghĩa ở trên
+    }, [handlePointerMove]); // Phụ thuộc vào handlePointerMove
 
-  /**
-   * Xử lý double-click: Bật/Tắt Edit Mode
-   */
-  const handleDoubleClick = (e) => {
-    e.stopPropagation();
-    if (item.locked) return;
+    // --- UseEffect ĐÃ SỬA LẠI (Chỉ dùng để cleanup khi unmount) ---
+    useEffect(() => {
+        // Effect này chỉ dùng để dọn dẹp listener nếu component bị unmount
+        // TRONG KHI đang kéo (isDraggingRef.current === true).
+        return () => {
+            if (isDraggingRef.current) {
+                window.removeEventListener('pointermove', handlePointerMove);
+                window.removeEventListener('pointerup', handlePointerUp);
+                window.removeEventListener('pointercancel', handlePointerUp);
+            }
+        };
+    }, [handlePointerMove, handlePointerUp]); // Phụ thuộc vào các hàm callback đã định nghĩa ở trên
 
-    const newIsEditing = !item.isEditing;
+    /**
+     * Xử lý double-click: Bật/Tắt Edit Mode
+     */
+    const handleDoubleClick = (e) => {
+        e.stopPropagation();
+        if (item.locked) return;
 
-    if (newIsEditing) {
-      onUpdateItem(item.id, { isEditing: true }, false);
-    } else {
-      onUpdateItem(item.id, { imagePosition: position, isEditing: false }, true);
-    }
-  };
+        const newIsEditing = !item.isEditing;
 
-  /**
-   * Xử lý Pointer Down: Bắt đầu hành động kéo (pan) ảnh
-   */
-  const handlePointerDown = (e) => {
-    if (!isEditing) return;
-    
-    e.preventDefault();
-    e.stopPropagation(); 
-
-    isDraggingRef.current = true;
-    pointerIdRef.current = e.pointerId;
-    e.target.setPointerCapture(e.pointerId);
-
-    dragStartRef.current = {
-        startX: e.clientX,
-        startY: e.clientY,
-        startPosX: position.x,
-        startPosY: position.y,
+        if (newIsEditing) {
+            onUpdateItem(item.id, { isEditing: true }, false);
+        } else {
+            onUpdateItem(item.id, { imagePosition: position, isEditing: false }, true);
+        }
     };
 
-    // Gắn listener vào window (Giờ đã hợp lệ vì các hàm đã ở trong scope)
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
-  };
+    /**
+     * Xử lý Pointer Down: Bắt đầu hành động kéo (pan) ảnh
+     */
+    const handlePointerDown = (e) => {
+        if (!isEditing) return;
 
-  // 5. Render Logic (Giữ nguyên)
-  const scale = isEditing ? EDIT_SCALE : 1;
-  const displayPosition = isEditing ? position : (item.imagePosition || { x: 0, y: 0 });
+        e.preventDefault();
+        e.stopPropagation();
 
-  const frameStyles = {
-    width: '100%',
-    height: '100%',
-    overflow: 'hidden',
-    borderRadius: item.shape === 'circle' ? '50%' : '0',
-    position: 'relative',
-    cursor: item.locked ? 'not-allowed' : (isEditing ? 'grab' : 'inherit'),
-    '&:active': {
-      cursor: item.locked ? 'not-allowed' : (isEditing ? 'grabbing' : 'inherit'),
-    }
-  };
+        isDraggingRef.current = true;
+        pointerIdRef.current = e.pointerId;
+        e.target.setPointerCapture(e.pointerId);
 
-  const imageStyles = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'fill',
-    userSelect: 'none',
-    pointerEvents: isEditing ? 'auto' : 'none', 
-    touchAction: 'none',
-    transform: `scale(${scale}) translate3d(${displayPosition.x}px, ${displayPosition.y}px, 0)`,
-    transformOrigin: 'center center',
-    transition: isDraggingRef.current ? 'none' : 'transform 0.3s ease',
-    filter: `brightness(${item.brightness ?? 1}) contrast(${item.contrast ?? 1}) grayscale(${item.grayscale ?? 0})`,
-  };
+        dragStartRef.current = {
+            startX: e.clientX,
+            startY: e.clientY,
+            startPosX: position.x,
+            startPosY: position.y,
+        };
 
-  return (
-    <Tooltip 
-      title={item.locked ? "Bị khóa" : (isEditing ? "Kéo để điều chỉnh. Double-click để hoàn tất." : "Double-click để chỉnh sửa vị trí ảnh.")} 
-      arrow 
-      placement="top"
-    >
-      <Box
-        ref={frameRef}
-        sx={frameStyles}
-        onDoubleClick={handleDoubleClick}
-        onClick={(e) => {
-          if (!isEditing) {
-            e.stopPropagation();
-            onSelectItem(item.id);
-          }
-        }}
-        onMouseDown={(e) => { if (isEditing) e.stopPropagation(); }}
-      >
-        {isEditing && (
-          <Box sx={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            zIndex: 10,
-            boxShadow: 'inset 0 0 0 3px rgba(59, 130, 246, 0.7)', 
-            background: 'rgba(59, 130, 246, 0.1)', 
-            pointerEvents: 'none',
-            borderRadius: item.shape === 'circle' ? '50%' : '0',
-          }} />
-        )}
+        // Gắn listener vào window (Giờ đã hợp lệ vì các hàm đã ở trong scope)
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointercancel', handlePointerUp);
+    };
 
-        {item.locked && (
-            <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 20, color: 'white', background: 'rgba(0,0,0,0.5)', borderRadius: '50%', p: 0.5, pointerEvents: 'none' }}>
-                <LockIcon fontSize="small" />
+    // 5. Render Logic (Giữ nguyên)
+    const scale = isEditing ? EDIT_SCALE : 1;
+    const displayPosition = isEditing ? position : (item.imagePosition || { x: 0, y: 0 });
+
+    const frameStyles = {
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        borderRadius: item.shape === 'circle' ? '50%' : '0',
+        position: 'relative',
+        cursor: item.locked ? 'not-allowed' : (isEditing ? 'grab' : 'inherit'),
+        '&:active': {
+            cursor: item.locked ? 'not-allowed' : (isEditing ? 'grabbing' : 'inherit'),
+        }
+    };
+
+    const imageStyles = {
+        width: '100%',
+        height: '100%',
+        objectFit: 'fill',
+        userSelect: 'none',
+        pointerEvents: isEditing ? 'auto' : 'none',
+        touchAction: 'none',
+        transform: `scale(${scale}) translate3d(${displayPosition.x}px, ${displayPosition.y}px, 0)`,
+        transformOrigin: 'center center',
+        transition: isDraggingRef.current ? 'none' : 'transform 0.3s ease',
+        filter: `brightness(${item.brightness ?? 1}) contrast(${item.contrast ?? 1}) grayscale(${item.grayscale ?? 0})`,
+    };
+
+    return (
+        <Tooltip
+            title={item.locked ? "Bị khóa" : (isEditing ? "Kéo để điều chỉnh. Double-click để hoàn tất." : "Double-click để chỉnh sửa vị trí ảnh.")}
+            arrow
+            placement="top"
+        >
+            <Box
+                ref={frameRef}
+                sx={frameStyles}
+                onDoubleClick={handleDoubleClick}
+                onClick={(e) => {
+                    if (!isEditing) {
+                        e.stopPropagation();
+                        onSelectItem(item.id);
+                    }
+                }}
+                onMouseDown={(e) => { if (isEditing) e.stopPropagation(); }}
+            >
+                {isEditing && (
+                    <Box sx={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        zIndex: 10,
+                        boxShadow: 'inset 0 0 0 3px rgba(59, 130, 246, 0.7)',
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        pointerEvents: 'none',
+                        borderRadius: item.shape === 'circle' ? '50%' : '0',
+                    }} />
+                )}
+
+                {item.locked && (
+                    <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 20, color: 'white', background: 'rgba(0,0,0,0.5)', borderRadius: '50%', p: 0.5, pointerEvents: 'none' }}>
+                        <LockIcon fontSize="small" />
+                    </Box>
+                )}
+
+                <img
+                    ref={imageRef}
+                    src={item.url}
+                    alt="Đối tượng hình ảnh có thể kéo"
+                    style={imageStyles}
+                    onPointerDown={handlePointerDown}
+                    onDragStart={(e) => e.preventDefault()}
+                />
             </Box>
-        )}
-
-        <img
-          ref={imageRef}
-          src={item.url}
-          alt="Đối tượng hình ảnh có thể kéo"
-          style={imageStyles}
-          onPointerDown={handlePointerDown}
-          onDragStart={(e) => e.preventDefault()}
-        />
-      </Box>
-    </Tooltip>
-  );
+        </Tooltip>
+    );
 };
 
 const LoveStoryPreview = ({ settings, onEditItem, onSelectField, selectedFieldKey }) => (
@@ -1012,12 +1017,12 @@ const LoveStoryPreview = ({ settings, onEditItem, onSelectField, selectedFieldKe
                             dùng URL.createObjectURL nếu là file đang được chỉnh sửa, 
                             hoặc dùng url string nếu đã được lưu. */}
                         {story.imageUrl && (
-                            <img 
-                                src={story.imageUrl instanceof File ? URL.createObjectURL(story.imageUrl) : story.imageUrl} 
-                                alt={story.title || "Cột mốc"} 
-                                className="story-image" 
+                            <img
+                                src={story.imageUrl instanceof File ? URL.createObjectURL(story.imageUrl) : story.imageUrl}
+                                alt={story.title || "Cột mốc"}
+                                className="story-image"
                                 // Ngăn sự kiện click vào ảnh kích hoạt onEditItem
-                                onClick={(e) => e.stopPropagation()} 
+                                onClick={(e) => e.stopPropagation()}
                             />
                         )}
                         {/* === KẾT THÚC PHẦN THÊM MỚI === */}
@@ -1041,13 +1046,13 @@ const LoveStoryPreview = ({ settings, onEditItem, onSelectField, selectedFieldKe
     </Box>
 );
 
-const ImageCropper = ({ 
-    imageSrc, 
-    position, 
-    onUpdatePosition, 
+const ImageCropper = ({
+    imageSrc,
+    position,
+    onUpdatePosition,
     onImageChange, // Hàm callback để thay ảnh
-    isEditing, 
-    onToggleEdit 
+    isEditing,
+    onToggleEdit
 }) => {
     const imgRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -1066,7 +1071,7 @@ const ImageCropper = ({
         e.stopPropagation(); // Ngăn chặn nổi bọt sự kiện
         isDragging.current = true;
         startPos.current = { x: e.clientX - x, y: e.clientY - y };
-        
+
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
     };
@@ -1076,7 +1081,7 @@ const ImageCropper = ({
         e.preventDefault();
         const newX = e.clientX - startPos.current.x;
         const newY = e.clientY - startPos.current.y;
-        
+
         // Cập nhật vị trí realtime
         onUpdatePosition({ x: newX, y: newY, scale });
     };
@@ -1105,25 +1110,25 @@ const ImageCropper = ({
             onImageChange(file);
         }
         // Reset input để chọn lại cùng file nếu muốn
-        e.target.value = null; 
+        e.target.value = null;
     };
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, width: '100%' }}>
             {/* Input file ẩn */}
-            <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                accept="image/*" 
-                style={{ display: 'none' }} 
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                style={{ display: 'none' }}
             />
 
-            <Box 
-                className="modern-couple-image" 
-                sx={{ 
-                    position: 'relative', 
-                    overflow: 'hidden', 
+            <Box
+                className="modern-couple-image"
+                sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
                     cursor: isEditing ? 'grab' : 'pointer',
                     border: isEditing ? '2px dashed #3B82F6' : 'none',
                     touchAction: 'none',
@@ -1161,27 +1166,27 @@ const ImageCropper = ({
                         transition: isDragging.current ? 'none' : 'transform 0.1s linear' // Mượt mà hơn
                     }}
                 />
-                
+
                 {/* OVERLAY KHI KHÔNG EDIT (Hiển thị nút thao tác) */}
                 {!isEditing && (
                     <Box sx={{
-                        position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.4)', 
-                        opacity: 0, transition: 'opacity 0.2s', display: 'flex', 
+                        position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.4)',
+                        opacity: 0, transition: 'opacity 0.2s', display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center', justifyContent: 'center', gap: 1,
                         '&:hover': { opacity: 1 }
                     }}>
-                        <Button 
-                            variant="contained" 
-                            size="small" 
+                        <Button
+                            variant="contained"
+                            size="small"
                             onClick={handleTriggerUpload}
                             sx={{ fontSize: '10px', minWidth: '80px', py: 0.5, bgcolor: 'white', color: 'black', '&:hover': { bgcolor: '#f5f5f5' } }}
                         >
                             Đổi ảnh
                         </Button>
-                        <Button 
-                            variant="contained" 
-                            size="small" 
+                        <Button
+                            variant="contained"
+                            size="small"
                             onClick={(e) => { e.stopPropagation(); onToggleEdit(); }}
                             sx={{ fontSize: '10px', minWidth: '80px', py: 0.5 }}
                         >
@@ -1193,40 +1198,40 @@ const ImageCropper = ({
 
             {/* THANH CÔNG CỤ EDIT (Chỉ hiện khi đang Edit) */}
             {isEditing && (
-                <Paper elevation={3} sx={{ 
-                    p: 1, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1.5, 
+                <Paper elevation={3} sx={{
+                    p: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
                     zIndex: 10,
                     borderRadius: 2,
                     mt: -1 // Đẩy lên gần ảnh hơn chút
                 }} onClick={(e) => e.stopPropagation()}>
-                    
+
                     <Tooltip title="Thu nhỏ">
                         <ZoomOutIcon fontSize="small" color="action" />
                     </Tooltip>
-                    
+
                     {/* SLIDER SCALE: Đã chỉnh step nhỏ để mượt */}
-                    <Slider 
+                    <Slider
                         size="small"
-                        min={1} 
-                        max={3} 
+                        min={1}
+                        max={3}
                         step={0.02} // <--- QUAN TRỌNG: Step nhỏ giúp scale mượt
-                        value={scale} 
+                        value={scale}
                         onChange={handleZoomChange}
                         sx={{ width: 100 }}
                     />
-                    
+
                     <Tooltip title="Phóng to">
                         <ZoomInIcon fontSize="small" color="action" />
                     </Tooltip>
 
                     <Divider orientation="vertical" flexItem />
 
-                    <Button 
-                        size="small" 
-                        variant="contained" 
+                    <Button
+                        size="small"
+                        variant="contained"
                         onClick={(e) => { e.stopPropagation(); onToggleEdit(); }}
                         sx={{ minWidth: 'auto', px: 2 }}
                     >
@@ -1247,21 +1252,21 @@ const ContactInfoPreview = ({ settings, onSelectField, selectedFieldKey }) => (
             titleKey="contactTitle"
             titleStyle={settings.contactTitleStyle}
         />
-        
+
         <Box className="modern-contact-section" sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
-            
+
             {/* === KHỐI NHÀ TRAI / CHÚ RỂ === */}
             <Box className="modern-contact-card" sx={{ flex: '1 1 250px', maxWidth: '350px', p: 2, borderRadius: 2, bgcolor: 'background.paper', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                 <Box className="contact-icon" sx={{ mb: 2 }}><PhoneIcon color="primary" fontSize="large" /></Box>
                 <Box className="contact-info" sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    
+
                     {/* Custom Text: Nhà Trai */}
                     <EditableWrapper fieldKey="groomLabel" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
                         <Typography component="h4" sx={{ ...settings.contactCardHeaderStyle, minHeight: '24px' }}>
                             {settings.groomLabel || 'Nhà trai'}
                         </Typography>
                     </EditableWrapper>
-                    
+
                     {/* Custom Text: Tên Chú rể */}
                     <EditableWrapper fieldKey="groomName" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
                         <Typography component="span" sx={{ ...settings.contactCardNameStyle, minHeight: '28px', display: 'block' }}>
@@ -1271,18 +1276,18 @@ const ContactInfoPreview = ({ settings, onSelectField, selectedFieldKey }) => (
 
                     {/* Custom Text: Số điện thoại + Tính năng Gọi điện */}
                     <EditableWrapper fieldKey="contactGroom" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
-                        <a 
-                            href={settings.contactGroom ? `tel:${settings.contactGroom.replace(/[^0-9+]/g, '')}` : '#'} 
+                        <a
+                            href={settings.contactGroom ? `tel:${settings.contactGroom.replace(/[^0-9+]/g, '')}` : '#'}
                             onClick={(e) => {
                                 // Trong màn hình Builder (Editor), chúng ta ngăn trình duyệt tự động gọi điện để user có thể chỉnh sửa text.
                                 // Tính năng href="tel:" sẽ hoạt động hoàn hảo trên giao diện View thật của khách mời.
-                                e.preventDefault(); 
+                                e.preventDefault();
                             }}
                             style={{ textDecoration: 'none', display: 'inline-block' }}
                         >
-                            <Typography sx={{ 
-                                ...settings.contactGroomStyle, 
-                                minHeight: '24px', 
+                            <Typography sx={{
+                                ...settings.contactGroomStyle,
+                                minHeight: '24px',
                                 color: 'var(--color-primary, #3B82F6)',
                                 fontWeight: 'bold',
                                 transition: 'opacity 0.2s',
@@ -1300,14 +1305,14 @@ const ContactInfoPreview = ({ settings, onSelectField, selectedFieldKey }) => (
             <Box className="modern-contact-card" sx={{ flex: '1 1 250px', maxWidth: '350px', p: 2, borderRadius: 2, bgcolor: 'background.paper', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                 <Box className="contact-icon" sx={{ mb: 2 }}><PhoneIcon color="secondary" fontSize="large" /></Box>
                 <Box className="contact-info" sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    
+
                     {/* Custom Text: Nhà Gái */}
                     <EditableWrapper fieldKey="brideLabel" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
                         <Typography component="h4" sx={{ ...settings.contactCardHeaderStyle, minHeight: '24px' }}>
                             {settings.brideLabel || 'Nhà gái'}
                         </Typography>
                     </EditableWrapper>
-                    
+
                     {/* Custom Text: Tên Cô dâu */}
                     <EditableWrapper fieldKey="brideName" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
                         <Typography component="span" sx={{ ...settings.contactCardNameStyle, minHeight: '28px', display: 'block' }}>
@@ -1317,17 +1322,17 @@ const ContactInfoPreview = ({ settings, onSelectField, selectedFieldKey }) => (
 
                     {/* Custom Text: Số điện thoại + Tính năng Gọi điện */}
                     <EditableWrapper fieldKey="contactBride" onSelectField={onSelectField} selectedFieldKey={selectedFieldKey}>
-                        <a 
-                            href={settings.contactBride ? `tel:${settings.contactBride.replace(/[^0-9+]/g, '')}` : '#'} 
+                        <a
+                            href={settings.contactBride ? `tel:${settings.contactBride.replace(/[^0-9+]/g, '')}` : '#'}
                             onClick={(e) => {
                                 // Tương tự khối nhà trai: chặn gọi điện trong màn Editor
                                 e.preventDefault();
                             }}
                             style={{ textDecoration: 'none', display: 'inline-block' }}
                         >
-                            <Typography sx={{ 
-                                ...settings.contactBrideStyle, 
-                                minHeight: '24px', 
+                            <Typography sx={{
+                                ...settings.contactBrideStyle,
+                                minHeight: '24px',
                                 color: 'var(--color-primary, #3B82F6)',
                                 fontWeight: 'bold',
                                 transition: 'opacity 0.2s',
@@ -1353,7 +1358,7 @@ const GalleryPreview = ({ settings, onSelectField, selectedFieldKey }) => (
                 selectedFieldKey={selectedFieldKey}
                 titleKey="galleryTitle"
             />
-            <Box className="modern-gallery" sx={{ columnCount: settings.galleryImages && settings.galleryImages.length > 0 ? 4 : 0  + "!important" }}>
+            <Box className="modern-gallery" sx={{ columnCount: settings.galleryImages && settings.galleryImages.length > 0 ? 4 : 0 + "!important" }}>
                 {(settings.galleryImages && settings.galleryImages.length > 0) ? settings.galleryImages.map((img, index) => (
                     <img key={index} src={img instanceof File ? URL.createObjectURL(img) : img} alt={`Gallery ${index}`} />
                 )) : <Typography sx={{ textAlign: 'center !important', color: 'text.secondary' }}>Chưa có ảnh nào. Nhấp vào biểu tượng bút chì ở trên để thêm.</Typography>}
@@ -1677,10 +1682,10 @@ const LoveStoryForm = ({ itemData, setItemData, onSave, onCancel, onRemove }) =>
                 // Khi chọn file, setItemData với file object
                 onFileSelect={(file) => setItemData(prev => ({ ...prev, imageUrl: file }))}
                 // Khi xóa ảnh, set imageUrl về null
-                onFileClear={() => setItemData(prev => ({...prev, imageUrl: null}))}
+                onFileClear={() => setItemData(prev => ({ ...prev, imageUrl: null }))}
             />
-            
-            
+
+
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
                 {onRemove && <Button onClick={onRemove} color="error" sx={{ mr: 'auto' }}>Xóa</Button>}
                 <Button onClick={onCancel}>Hủy</Button>
@@ -1720,15 +1725,15 @@ const EventForm = ({ itemData, setItemData, onSave, onCancel, onRemove }) => {
                     <Typography variant="subtitle2" gutterBottom color="text.secondary">
                         Địa điểm tổ chức (Tìm kiếm hoặc thả Pin trên bản đồ)
                     </Typography>
-                    <MapPickerEditor 
-                        location={{ 
-                            lat: itemData.location?.lat, 
-                            lng: itemData.location?.lng, 
-                            address: itemData.address || '' 
+                    <MapPickerEditor
+                        location={{
+                            lat: itemData.location?.lat,
+                            lng: itemData.location?.lng,
+                            address: itemData.address || ''
                         }}
                         onLocationChange={(newLoc) => {
-                            setItemData(prev => ({ 
-                                ...prev, 
+                            setItemData(prev => ({
+                                ...prev,
                                 address: newLoc.address,
                                 location: { lat: newLoc.lat, lng: newLoc.lng },
                                 // Tự động render mapUrl cho tương thích ngược / nút bấm bên ngoài
@@ -1788,7 +1793,7 @@ const SimplifiedStoryEditor = ({ fieldKey, settings, onUpdate, customFonts }) =>
     const toggleStyle = (property, value, defaultValue) => {
         handleUpdate({ [property]: item[property] === value ? defaultValue : value });
     };
-    
+
     // Logic filter tương tự
     const filteredCustomFonts = customFonts.filter(f => {
         if (fontFilter === 'All') return true;
@@ -1863,11 +1868,11 @@ const SimplifiedStoryEditor = ({ fieldKey, settings, onUpdate, customFonts }) =>
                 <ToggleButtonGroup
                     value={fontFilter}
                     exclusive
-                    onChange={(e, newVal) => { if(newVal) setFontFilter(newVal); }}
+                    onChange={(e, newVal) => { if (newVal) setFontFilter(newVal); }}
                     size="small"
-                    sx={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
+                    sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
                         gap: 0.5,
                         '& .MuiToggleButtonGroup-grouped': {
                             border: `1px solid ${theme.palette.divider} !important`,
@@ -2199,20 +2204,20 @@ const SettingsPropertyEditor = ({ selectedKey, settings, setSettings, customFont
         setSettings(prev => {
             const newSettings = { ...prev };
             if (meta.type === 'text' || meta.type === 'datetime' || meta.type === 'select') {
-                 _.set(newSettings, fieldIdOrValue, updates.content);
-                 return newSettings;
+                _.set(newSettings, fieldIdOrValue, updates.content);
+                return newSettings;
             }
             const { content, ...styleUpdates } = updates;
             if (content !== undefined) {
                 _.set(newSettings, fieldIdOrValue, content);
             }
             if (Object.keys(styleUpdates).length > 0) {
-                const styleKey = `${fieldIdOrValue}Style`; 
-                const currentStyles = _.get(prev, styleKey, {}); 
-                const newStyles = { ...currentStyles, ...styleUpdates }; 
-                _.set(newSettings, styleKey, newStyles); 
+                const styleKey = `${fieldIdOrValue}Style`;
+                const currentStyles = _.get(prev, styleKey, {});
+                const newStyles = { ...currentStyles, ...styleUpdates };
+                _.set(newSettings, styleKey, newStyles);
             }
-            
+
             return newSettings;
         });
     };
@@ -2273,15 +2278,15 @@ const SettingsPropertyEditor = ({ selectedKey, settings, setSettings, customFont
                     items={value || []}
                     onUpdate={handleUpdate}
                     FormComponent={EventForm}
-                    defaultNewItem={{ 
-                        title: 'Sự kiện mới', 
-                        date: new Date().toISOString().split('T')[0], 
-                        time: '12:00', 
-                        address: '', 
-                        mapUrl: '', 
+                    defaultNewItem={{
+                        title: 'Sự kiện mới',
+                        date: new Date().toISOString().split('T')[0],
+                        time: '12:00',
+                        address: '',
+                        mapUrl: '',
                         location: { lat: 21.028511, lng: 105.804817 }, // Mặc định Hà Nội
-                        imageUrl: '', 
-                        dressCode: [] 
+                        imageUrl: '',
+                        dressCode: []
                     }}
                     renderListItem={(item) => <ListItemText primary={item.title} secondary={`${item.date} - ${item.time}`} />}
                     initialItemToEdit={itemToEdit?.type === 'events' ? itemToEdit : null}
@@ -2466,13 +2471,13 @@ const MinimalHandleStyle = {
 const RotateHandleStyle = {
     ...MinimalHandleStyle,
     cursor: 'alias',
-    top: `-${HANDLE_OFFSET + 20}px`, 
+    top: `-${HANDLE_OFFSET + 20}px`,
     left: `calc(50% - ${HANDLE_OFFSET}px)`,
 };
 const RotateLine = styled('div')({
     position: 'absolute',
     width: '1.5px',
-    height: '18px', 
+    height: '18px',
     backgroundColor: BORDER_COLOR,
     left: 'calc(50% - 0.75px)',
     bottom: `calc(100% + ${HANDLE_OFFSET}px)`,
@@ -2618,7 +2623,7 @@ const UserImageManager = ({ userImages, onItemClick, onImageUploaded, isUploadin
 
     const toggleSelectImage = (e, id) => {
         e.stopPropagation(); // Ngăn sự kiện click lan ra ngoài (không tự động thêm ảnh vào canvas)
-        setSelectedImages(prev => 
+        setSelectedImages(prev =>
             prev.includes(id) ? prev.filter(imgId => imgId !== id) : [...prev, id]
         );
     };
@@ -2633,7 +2638,7 @@ const UserImageManager = ({ userImages, onItemClick, onImageUploaded, isUploadin
     return (
         <Box>
             <Typography variant="h6" gutterBottom>Ảnh của bạn</Typography>
-            
+
             {/* Hiển thị Nút Upload hoặc Nút Xoá tuỳ thuộc vào việc có ảnh nào được chọn hay không */}
             {selectedImages.length > 0 ? (
                 <Box sx={{ display: 'flex', gap: 1, mb: 2.5 }}>
@@ -2676,7 +2681,7 @@ const UserImageManager = ({ userImages, onItemClick, onImageUploaded, isUploadin
                 style={{ display: 'none' }}
                 multiple
             />
-            
+
             <Box sx={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
@@ -2697,10 +2702,10 @@ const UserImageManager = ({ userImages, onItemClick, onImageUploaded, isUploadin
                             <Card
                                 onClick={() => onItemClick({ id: img.id, url: img.url, type: 'image' })}
                                 sx={{
-                                    cursor: 'pointer', 
+                                    cursor: 'pointer',
                                     transition: 'transform 0.2s, box-shadow 0.2s',
-                                    '&:hover': { 
-                                        transform: 'scale(1.04)', 
+                                    '&:hover': {
+                                        transform: 'scale(1.04)',
                                         boxShadow: 3,
                                         '& .checkbox-container': {
                                             opacity: 1,
@@ -2740,7 +2745,7 @@ const UserImageManager = ({ userImages, onItemClick, onImageUploaded, isUploadin
                                 <CardMedia component="img" image={img.url} alt={img.name}
                                     sx={{
                                         objectFit: 'contain', p: 1, maxHeight: '100%', maxWidth: '100%',
-                                        pointerEvents: 'none' 
+                                        pointerEvents: 'none'
                                     }}
                                     onError={(e) => {
                                         const target = e.target; target.onerror = null;
@@ -2756,14 +2761,14 @@ const UserImageManager = ({ userImages, onItemClick, onImageUploaded, isUploadin
 };
 
 
-const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onSelectItem, zoomLevel, snapToGrid, gridSize, allItems, onSetSnapLines, snapToObject, children, canvasRef, id }) => {    
+const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onSelectItem, zoomLevel, snapToGrid, gridSize, allItems, onSetSnapLines, snapToObject, children, canvasRef, id }) => {
     const itemRef = useRef(null);
     const isLocked = item.locked;
     const [isTransforming, setIsTransforming] = useState(false);
-    
+
     // 1. THÊM REF NÀY: Cờ chặn React useEffect ghi đè vị trí khi đang kéo
     const isDraggingRef = useRef(false);
-    
+
     const dragStartPos = useRef({ x: 0, y: 0 });
 
     const motionX = useMotionValue(item.x);
@@ -2782,19 +2787,19 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
     // 3. ĐỔI onDragStart THÀNH onPanSessionStart
     const handlePanStart = (e, info) => {
         if (isLocked || isTransforming || item.isEditing) return;
-        
+
         isDraggingRef.current = true; // Bật cờ khóa re-render
-        
+
         // QUAN TRỌNG: Lấy tọa độ realtime từ motion value thay vì item.x để tránh sai số frame đầu
-        dragStartPos.current = { x: motionX.get(), y: motionY.get() }; 
-        
+        dragStartPos.current = { x: motionX.get(), y: motionY.get() };
+
         onSelectItem(item.id);
     };
 
     // 4. ĐỔI onDrag THÀNH onPan
     const handlePan = (e, info) => {
         if (isLocked || isTransforming || !isDraggingRef.current) return;
-        
+
         let newX = dragStartPos.current.x + info.offset.x / zoomLevel;
         let newY = dragStartPos.current.y + info.offset.y / zoomLevel;
 
@@ -2809,11 +2814,11 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
         motionY.set(newY);
         onSetSnapLines(guides);
     };
-    
+
     // 5. ĐỔI onDragEnd THÀNH onPanEnd
     const handlePanEnd = (e, info) => {
         if (isLocked || isTransforming || !isDraggingRef.current) return;
-        
+
         let finalX = motionX.get();
         let finalY = motionY.get();
 
@@ -2829,7 +2834,7 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
         motionX.set(finalX);
         motionY.set(finalY);
         onSetSnapLines([]);
-        
+
         // Lưu trạng thái lên State tổng
         onUpdateItem(item.id, { x: finalX, y: finalY }, true);
 
@@ -2852,23 +2857,23 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
         const startMouseY = e.clientY;
         const handleMove = (moveEvent) => {
             const isCorner = handleName.includes('-'); // Kiểm tra có đang kéo 4 góc chéo không
-            
+
             // Text CHỈ scale tỷ lệ khung khi đang kéo góc chéo
-            const isProportional = moveEvent.shiftKey || (startItem.type === 'text' && isCorner); 
-            
+            const isProportional = moveEvent.shiftKey || (startItem.type === 'text' && isCorner);
+
             const mouseDx = (moveEvent.clientX - startMouseX) / zoomLevel;
             const mouseDy = (moveEvent.clientY - startMouseY) / zoomLevel;
             const localDx = mouseDx * cos + mouseDy * sin;
             const localDy = -mouseDx * sin + mouseDy * cos;
-            
+
             let dw = 0;
             let dh = 0;
-            
+
             if (handleName.includes('right')) dw = localDx;
             if (handleName.includes('left')) dw = -localDx;
             if (handleName.includes('bottom')) dh = localDy;
             if (handleName.includes('top')) dh = -localDy;
-            
+
             if (isProportional) {
                 if (isCorner) {
                     if (Math.abs(localDx) > Math.abs(localDy)) {
@@ -2884,10 +2889,10 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
                     }
                 }
             }
-            
+
             let newWidth = startItem.width + dw;
             let newHeight = startItem.height + dh;
-            
+
             if (newWidth < MIN_ITEM_WIDTH) {
                 newWidth = MIN_ITEM_WIDTH;
                 if (isProportional) newHeight = newWidth / aspectRatio;
@@ -2896,17 +2901,17 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
                 newHeight = MIN_ITEM_HEIGHT;
                 if (isProportional) newWidth = newHeight * aspectRatio;
             }
-            
+
             const finalDw = newWidth - startItem.width;
             const finalDh = newHeight - startItem.height;
             let deltaCenterX = finalDw / 2;
             let deltaCenterY = finalDh / 2;
-            
+
             if (handleName.includes('left')) deltaCenterX = -finalDw / 2;
             if (handleName.includes('top')) deltaCenterY = -finalDh / 2;
             if (handleName === 'left' || handleName === 'right') deltaCenterY = 0;
             if (handleName === 'top' || handleName === 'bottom') deltaCenterX = 0;
-            
+
             const rotatedShiftX = deltaCenterX * cos - deltaCenterY * sin;
             const rotatedShiftY = deltaCenterX * sin + deltaCenterY * cos;
             const startCenterX = startItem.x + startItem.width / 2;
@@ -2938,7 +2943,7 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
             if (startItem.type === 'text') {
                 if (isCorner) {
                     const scaleRatio = newWidth / startItem.width;
-                    newProps.fontSize = Math.max(8, startItem.fontSize * scaleRatio); 
+                    newProps.fontSize = Math.max(8, startItem.fontSize * scaleRatio);
                     newProps.isCustomWidth = true; // Kéo góc cũng tính là can thiệp chiều ngang
                 }
             }
@@ -2969,7 +2974,7 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
 
         // Tính toán góc ban đầu của con trỏ so với tâm item
         const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-        
+
         // Lấy góc xoay ban đầu của item
         const initialRotation = motionRotate.get();
 
@@ -2980,17 +2985,17 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
 
             // Tính toán góc hiện tại của con trỏ so với tâm item
             const currentAngle = Math.atan2(currentY - centerY, currentX - centerX);
-            
+
             // Tính sự thay đổi về góc (đổi từ radian sang độ)
             const angleDiff = (currentAngle - startAngle) * (180 / Math.PI);
-            
+
             let newRotation = initialRotation + angleDiff;
 
             // Làm tròn góc nếu bật chế độ snap
             if (snapToGrid || snapToObject) {
                 newRotation = Math.round(newRotation / ROTATION_SNAP_ANGLE) * ROTATION_SNAP_ANGLE;
             }
-            
+
             motionRotate.set(newRotation);
         };
 
@@ -3012,27 +3017,27 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
         <DraggableItem
             ref={itemRef}
             id={id}
-            
+
             // ❌ XÓA BỎ các prop drag cũ gây xung đột:
             // drag={!isTransforming && !isLocked && !item.isEditing}
             // dragMomentum={false} 
             // onDragStart={handleDragStart}
             // onDrag={handleDrag}
             // onDragEnd={handleDragEnd}
-            
+
             // ✅ SỬ DỤNG GESTURE "onPan" CỦA FRAMER MOTION:
             onPanSessionStart={handlePanStart}
             onPan={handlePan}
             onPanEnd={handlePanEnd}
-            
+
             style={{
-                x: motionX, 
-                y: motionY, 
+                x: motionX,
+                y: motionY,
                 rotate: motionRotate,
                 zIndex: isSelected ? item.zIndex + 1000 : item.zIndex,
                 width: item.width,
                 height: item.height,
-                border: (isSelected || isTransforming) 
+                border: (isSelected || isTransforming)
                     ? `2.5px solid ${isLocked ? '#EF4444' : BORDER_COLOR}` // #EF4444 là màu đỏ báo hiệu Locked
                     : `2.5px solid transparent`,
                 transformOrigin: 'center center',
@@ -3063,9 +3068,9 @@ const DraggableItemComponent = React.memo(({ item, onUpdateItem, isSelected, onS
 const TextEditor = (props) => {
     const { item, onUpdateItem, onSelectItem } = props;
     const inputRef = useRef(null);
-    const measureRef = useRef(null); 
+    const measureRef = useRef(null);
     const isLocked = item.locked;
-    const isCustomWidth = item.isCustomWidth || false; 
+    const isCustomWidth = item.isCustomWidth || false;
 
     // --- 1. THÊM LOGIC LƯU TRỮ VÀ CLEAR DATA KHI FOCUS ---
     const originalContent = useRef(item.content);
@@ -3080,7 +3085,7 @@ const TextEditor = (props) => {
         const finalContent = item.content.trim() === '' ? originalContent.current : item.content;
         onUpdateItem(item.id, { isEditing: false, content: finalContent }, true);
     };
-    
+
     const textStyle = {
         fontSize: `${item.fontSize || 16}px`,
         fontFamily: item.fontFamily || 'Arial',
@@ -3094,12 +3099,12 @@ const TextEditor = (props) => {
         boxSizing: 'border-box',
         width: '100%',
         height: '100%',
-        whiteSpace: 'pre-wrap', 
+        whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
         backgroundColor: 'transparent',
     };
 
-    
+
     const handleKeyDown = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -3122,7 +3127,7 @@ const TextEditor = (props) => {
             if (!isCustomWidth) {
                 if (Math.abs(fitWidth - item.width) > 2) {
                     updates.width = fitWidth;
-                    
+
                     // Logic giữ nguyên tâm/trục khi text phình to (quan trọng cho UI UX)
                     const widthDiff = fitWidth - item.width;
                     if (item.textAlign === 'center') {
@@ -3148,7 +3153,7 @@ const TextEditor = (props) => {
 
     return (
         <DraggableItemComponent {...props}>
-            
+
             {/* KHUNG ĐO LƯỜNG ẨN */}
             <div
                 ref={measureRef}
@@ -3159,10 +3164,10 @@ const TextEditor = (props) => {
                     height: 'auto',
                     // QUAN TRỌNG: Nếu chưa scale tay, thả rông chiều ngang (max-content) để đo độ dài chữ.
                     // Nếu scale tay rồi, chốt width hiện tại để đo chiều cao rớt dòng.
-                    width: isCustomWidth ? `${item.width}px` : 'max-content', 
+                    width: isCustomWidth ? `${item.width}px` : 'max-content',
                     top: -9999,
                     left: -9999,
-                    padding: '10px 5px', 
+                    padding: '10px 5px',
                 }}
             >
                 {item.content ? item.content + '\u200B' : "Văn bản"}
@@ -3216,27 +3221,27 @@ const ImageEditor = React.memo((props) => {
     // Giữ lại placeholder của bạn
     const placeholder = (
         <Box
-            style={{ 
-                width: '100%', 
-                height: '100%', 
-                backgroundColor: '#f0f0f0', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                color: '#888', 
-                cursor: 'pointer', 
-                textAlign: 'center', 
-                padding: '10px', 
+            style={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: '#f0f0f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#888',
+                cursor: 'pointer',
+                textAlign: 'center',
+                padding: '10px',
                 boxSizing: 'border-box',
                 // Đảm bảo placeholder cũng có hình dạng đúng
-                borderRadius: item.shape === 'circle' ? '50%' : '0' 
+                borderRadius: item.shape === 'circle' ? '50%' : '0'
             }}
             onClick={(e) => {
                 e.stopPropagation();
                 onSelectItem(item.id);
             }}
         >
-            <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1}}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                 <BrokenImageIcon />
                 Chọn ảnh
             </Box>
@@ -3247,9 +3252,9 @@ const ImageEditor = React.memo((props) => {
         <DraggableItemComponent {...props}>
             {item.url ? (
                 // Dùng component mới khi có ảnh
-                <PannableImageFrame 
-                    item={item} 
-                    onUpdateItem={onUpdateItem} 
+                <PannableImageFrame
+                    item={item}
+                    onUpdateItem={onUpdateItem}
                     onSelectItem={onSelectItem}
                 />
             ) : (
@@ -3264,25 +3269,25 @@ const ImageEditor = React.memo((props) => {
 const TextPropertyEditor = ({ item, onUpdate, customFonts }) => {
     const theme = useTheme();
     const [displayColorPicker, setDisplayColorPicker] = useState(false);
-    
+
     // Thêm state quản lý filter font
     const [fontFilter, setFontFilter] = useState('All');
 
     // Cập nhật Live (kéo thanh màu thì đổi màu ngay nhưng KHÔNG lưu vào lịch sử Undo)
     const handleColorChangeLive = (color) => {
         // Hỗ trợ cả mã HEX và RGBA (nếu có độ trong suốt)
-        const colorValue = color.rgb.a !== 1 
-            ? `rgba(${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}, ${color.rgb.a})` 
+        const colorValue = color.rgb.a !== 1
+            ? `rgba(${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}, ${color.rgb.a})`
             : color.hex;
-        onUpdate(item.id, { color: colorValue }, false); 
+        onUpdate(item.id, { color: colorValue }, false);
     };
 
     // Khi thả chuột ra mới chính thức lưu vào lịch sử Undo/Redo
     const handleColorChangeComplete = (color) => {
-        const colorValue = color.rgb.a !== 1 
-            ? `rgba(${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}, ${color.rgb.a})` 
+        const colorValue = color.rgb.a !== 1
+            ? `rgba(${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}, ${color.rgb.a})`
             : color.hex;
-        onUpdate(item.id, { color: colorValue }, true); 
+        onUpdate(item.id, { color: colorValue }, true);
     };
 
     // Hàm riêng cho các nút bấm màu nhanh bên ngoài
@@ -3291,14 +3296,14 @@ const TextPropertyEditor = ({ item, onUpdate, customFonts }) => {
     };
 
     const PRESET_COLORS = ['#000000', '#FFFFFF', '#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'];
-    
+
     // Dải màu mở rộng cho bảng chọn nâng cao
     const EXTENDED_PRESET_COLORS = [
         '#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505',
         '#BD10E0', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000',
         '#4A4A4A', '#9B9B9B', '#FFFFFF', '#3B82F6', '#10B981', '#EF4444'
     ];
-    
+
     // Xử lý logic filter font
     const filteredCustomFonts = customFonts.filter(f => {
         if (fontFilter === 'All') return true;
@@ -3315,7 +3320,7 @@ const TextPropertyEditor = ({ item, onUpdate, customFonts }) => {
     if (item.fontFamily && !availableFonts.includes(item.fontFamily)) {
         availableFonts = [item.fontFamily, ...availableFonts];
     }
-    availableFonts = [...new Set(availableFonts)]; 
+    availableFonts = [...new Set(availableFonts)];
 
     return (
         <Box component="form" noValidate autoComplete="off" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -3330,34 +3335,34 @@ const TextPropertyEditor = ({ item, onUpdate, customFonts }) => {
             />
             <Grid container spacing={2}>
                 <Grid item xs={6}>
-                    <TextField 
-                        label="Rộng (px)" 
-                        type="number" 
-                        value={Math.round(item.width)} 
-                        onChange={(e) => onUpdate(item.id, { 
+                    <TextField
+                        label="Rộng (px)"
+                        type="number"
+                        value={Math.round(item.width)}
+                        onChange={(e) => onUpdate(item.id, {
                             width: parseInt(e.target.value, 10) || MIN_ITEM_WIDTH,
                             isCustomWidth: true // <-- BẬT FIXED-WIDTH NẾU USER TỰ GÕ THÔNG SỐ
-                        }, false)} 
-                        onBlur={() => onUpdate(item.id, {}, true)} 
-                        fullWidth margin="none" size="small" variant="outlined" 
-                        InputProps={{ inputProps: { min: MIN_ITEM_WIDTH } }} 
+                        }, false)}
+                        onBlur={() => onUpdate(item.id, {}, true)}
+                        fullWidth margin="none" size="small" variant="outlined"
+                        InputProps={{ inputProps: { min: MIN_ITEM_WIDTH } }}
                     />
                 </Grid>
                 <Grid item xs={6}>
                     <TextField label="Cao (px)" type="number" value={Math.round(item.height)} onChange={(e) => onUpdate(item.id, { height: parseInt(e.target.value, 10) || MIN_ITEM_HEIGHT }, false)} onBlur={() => onUpdate(item.id, {}, true)} fullWidth margin="none" size="small" variant="outlined" InputProps={{ inputProps: { min: MIN_ITEM_HEIGHT } }} />
                 </Grid>
             </Grid>
-            
+
             <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Lọc Font chữ:</Typography>
                 <ToggleButtonGroup
                     value={fontFilter}
                     exclusive
-                    onChange={(e, newVal) => { if(newVal) setFontFilter(newVal); }}
+                    onChange={(e, newVal) => { if (newVal) setFontFilter(newVal); }}
                     size="small"
-                    sx={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
+                    sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
                         gap: 0.5,
                         '& .MuiToggleButtonGroup-grouped': {
                             border: `1px solid ${theme.palette.divider} !important`,
@@ -3429,7 +3434,7 @@ const TextPropertyEditor = ({ item, onUpdate, customFonts }) => {
                                 />
                             </Tooltip>
                         ))}
-                        
+
                         <Tooltip title="Bảng màu nâng cao">
                             <IconButton onClick={() => setDisplayColorPicker(true)} sx={{ border: '1px dashed', borderColor: 'divider', width: 28, height: 28 }}>
                                 <PaletteIcon fontSize="small" />
@@ -3437,14 +3442,14 @@ const TextPropertyEditor = ({ item, onUpdate, customFonts }) => {
                         </Tooltip>
 
                         {/* Thay thế Dropdown cũ bằng Dialog Modal ở giữa màn hình */}
-                        <Dialog 
-                            open={displayColorPicker} 
+                        <Dialog
+                            open={displayColorPicker}
                             onClose={() => setDisplayColorPicker(false)}
                             maxWidth="xs"
                             fullWidth
                             PaperProps={{
                                 sx: {
-                                    borderRadius: 3, 
+                                    borderRadius: 3,
                                     p: 1
                                 }
                             }}
@@ -3454,9 +3459,9 @@ const TextPropertyEditor = ({ item, onUpdate, customFonts }) => {
                             </DialogTitle>
                             <DialogContent sx={{ display: 'flex', justifyContent: 'center', pb: 2, pt: '10px !important' }}>
                                 <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                                    <SketchPicker 
-                                        color={item.color || '#000000'} 
-                                        onChange={handleColorChangeLive} 
+                                    <SketchPicker
+                                        color={item.color || '#000000'}
+                                        onChange={handleColorChangeLive}
                                         onChangeComplete={handleColorChangeComplete}
                                         width="100%"
                                         presetColors={EXTENDED_PRESET_COLORS}
@@ -3624,7 +3629,7 @@ const BlankCanvasCreator = ({ onCreate }) => {
             setSizeKey(value);
         }
     };
-    
+
     const handleCustomDimChange = (setter) => (event) => {
         // Chỉ cập nhật giá trị thô vào state để người dùng thoải mái gõ phím
         setter(event.target.value);
@@ -3632,34 +3637,34 @@ const BlankCanvasCreator = ({ onCreate }) => {
 
     const handleCustomDimBlur = (setter, value) => () => {
         if (value === '') {
-            setter(10); 
+            setter(10);
             return;
         }
-        
+
         let numValue = parseFloat(value);
-        
+
         if (isNaN(numValue)) {
             setter(10);
             return;
         }
-        
+
         // Chỉ ép (clamp) kích thước khi người dùng đã gõ xong và click ra ngoài (Blur)
         if (numValue < 0) numValue = 0;
         if (numValue > 200) numValue = 200;
-        
+
         setter(numValue);
     };
-        
+
     const handleCustomDimKeyDown = (setter, value) => (event) => {
         // Nếu người dùng bấm phím Enter
         if (event.key === 'Enter') {
             event.preventDefault(); // Ngăn hành vi mặc định (như submit form ngoài ý muốn)
-            
+
             // Gọi lại đúng logic kiểm tra của onBlur
             handleCustomDimBlur(setter, value)();
-            
+
             // (Tuỳ chọn) Làm mất focus của ô input sau khi bấm Enter để UX giống với khi click ra ngoài
-            event.target.blur(); 
+            event.target.blur();
         }
     };
 
@@ -3913,7 +3918,7 @@ const TemplatePickerIntegrated = ({ templates, onSelectTemplate }) => {
     return (
         <Box>
             <Typography variant="h6" gutterBottom>Chọn mẫu thiệp</Typography>
-            
+
             {/* Thanh tìm kiếm */}
             <TextField
                 fullWidth
@@ -3926,12 +3931,12 @@ const TemplatePickerIntegrated = ({ templates, onSelectTemplate }) => {
             />
 
             {/* Sử dụng CSS Grid thay vì MUI Grid để ép cứng 2 cột tuyệt đối */}
-            <Box sx={{ 
+            <Box sx={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)', // Ép 2 cột chia đều không gian
                 gap: 1.5, // Khoảng cách giữa các cột/hàng (tương đương spacing 1.5 của MUI)
-                pt: 1, 
-                maxHeight: 'calc(100vh - 170px)', 
+                pt: 1,
+                maxHeight: 'calc(100vh - 170px)',
                 overflowY: 'auto',
                 px: 0.5, // Thêm chút padding ngang để khi hover (box-shadow) không bị cắt lẹm
                 pb: 2
@@ -3949,37 +3954,37 @@ const TemplatePickerIntegrated = ({ templates, onSelectTemplate }) => {
                     </Box>
                 ) : (
                     filteredTemplates.map(template => (
-                        <Card 
+                        <Card
                             key={template._id}
-                            onClick={() => onSelectTemplate(template._id)} 
-                            sx={{ 
-                                cursor: 'pointer', 
-                                '&:hover': { boxShadow: 4, transform: 'scale(1.02)' }, 
+                            onClick={() => onSelectTemplate(template._id)}
+                            sx={{
+                                cursor: 'pointer',
+                                '&:hover': { boxShadow: 4, transform: 'scale(1.02)' },
                                 transition: 'all 0.2s ease',
-                                height: '100%', 
-                                display: 'flex', 
-                                flexDirection: 'column' 
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column'
                             }}
                         >
-                            <CardMedia 
-                                component="img" 
-                                height="120" 
-                                image={template.imgSrc || 'https://placehold.co/400x400/EBF1FB/B0C7EE?text=No+Image'} 
-                                alt={template.title} 
-                                sx={{ objectFit: 'cover' }} 
+                            <CardMedia
+                                component="img"
+                                height="120"
+                                image={template.imgSrc || 'https://placehold.co/400x400/EBF1FB/B0C7EE?text=No+Image'}
+                                alt={template.title}
+                                sx={{ objectFit: 'cover' }}
                             />
                             <CardContent sx={{ p: 1, '&:last-child': { pb: 1 }, flexGrow: 1 }}>
-                                <Typography 
-                                    variant="body2" 
+                                <Typography
+                                    variant="body2"
                                     fontWeight="500"
-                                    sx={{ 
+                                    sx={{
                                         fontSize: '0.8rem',
                                         lineHeight: 1.3,
                                         // Giới hạn hiển thị tối đa 2 dòng, phần thừa biến thành "..."
-                                        display: '-webkit-box', 
-                                        WebkitLineClamp: 2, 
-                                        WebkitBoxOrient: 'vertical', 
-                                        overflow: 'hidden' 
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden'
                                     }}
                                 >
                                     {template.title}
@@ -4044,11 +4049,11 @@ const SortablePageItem = ({ id, page, isSelected, onSelect, onRemove }) => {
     );
 };
 function usePrevious(value) {
-  const ref = useRef();
-  useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
+    const ref = useRef();
+    useEffect(() => {
+        ref.current = value;
+    });
+    return ref.current;
 }
 const WeddingInvitationEditor = () => {
     const theme = useTheme();
@@ -4075,7 +4080,7 @@ const WeddingInvitationEditor = () => {
     const [selectedItemId, setSelectedItemId] = useState(null);
     const [selectedSettingField, setSelectedSettingField] = useState(null);
     const [itemToEdit, setItemToEdit] = useState(null);
-    const [localItemData, setLocalItemData] = useState(null); 
+    const [localItemData, setLocalItemData] = useState(null);
     const prevItemToEdit = usePrevious(itemToEdit);
     const handleUpdateSetting = useCallback((key, value) => {
         setEventSettings(prev => ({
@@ -4089,11 +4094,11 @@ const WeddingInvitationEditor = () => {
     const handleInvitationTypeChange = useCallback((updater) => {
         setEventSettings(prevSettings => {
             const newSettings = typeof updater === 'function' ? updater(prevSettings) : updater;
-            
+
             // LOGIC NGHIỆP VỤ: Nếu người dùng thay đổi dropdown loại thiệp
             if (newSettings.invitationType !== prevSettings.invitationType) {
                 let defaultBlocksForType = [];
-                
+
                 switch (newSettings.invitationType) {
                     case 'Thiệp cưới':
                         defaultBlocksForType = ['BANNER_CAROUSEL', 'EVENT_DESCRIPTION', 'COUPLE_INFO', 'PARTICIPANTS', 'EVENT_SCHEDULE', 'COUNTDOWN', 'LOVE_STORY', 'GALLERY', 'VIDEO', 'CONTACT_INFO', 'QR_CODES', 'RSVP', 'CUSTOM_HTML'];
@@ -4106,13 +4111,13 @@ const WeddingInvitationEditor = () => {
                         defaultBlocksForType = []; // Reset xóa sạch các khối
                         break;
                 }
-                
+
                 // 1. Cập nhật settings
                 newSettings.blocksOrder = defaultBlocksForType;
-                
+
                 // 2. Cập nhật state UI ngay lập tức
                 setEventBlocks(defaultBlocksForType.map(type => ({ id: uuidv4(), type })));
-                
+
                 toast.info(`Đã chuyển sang ${newSettings.invitationType}. Khởi tạo lại các khối.`);
             }
             return newSettings;
@@ -4151,7 +4156,7 @@ const WeddingInvitationEditor = () => {
                 distance: 8,
             },
         })
-    ); 
+    );
     const [eventSettings, setEventSettings] = useState({
         eventDate: '', groomName: '', brideName: '', groomInfo: '', brideInfo: '', groomImageUrl: '', brideImageUrl: '',
         heroImages: { main: '', sub1: '', sub2: '' }, galleryImages: [],
@@ -4214,7 +4219,7 @@ const WeddingInvitationEditor = () => {
         rsvpSubtitle: 'Sự hiện diện của bạn là niềm vinh hạnh cho gia đình chúng tôi.',
         rsvpTitleStyle: { fontFamily: 'Playfair Display', fontSize: 44, color: '#4a4a68', fontWeight: '600' },
         rsvpSubtitleStyle: { fontFamily: 'Inter', fontSize: 18, color: '#555555', textAlign: 'center' },
-     });
+    });
     const settingsPanelRef = useRef(null);
     const centralColumnRef = useRef(null); // Ref for the scrolling container
     const canvasContainerRef = useRef(null);
@@ -4236,16 +4241,16 @@ const WeddingInvitationEditor = () => {
             if (canvasWrapperRef.current && pages.length > 0) {
                 const firstPage = pages[0];
                 const wrapper = canvasWrapperRef.current;
-                
+
                 const wrapperWidth = wrapper.clientWidth;
                 const wrapperHeight = wrapper.clientHeight;
                 const padding = 60;
 
                 const availableWidth = wrapperWidth - padding;
-                
+
                 // Ưu tiên tính scale để page có chiều cao bằng 80% wrapper
                 const scaleToMeetHeightConstraint = (wrapperHeight * 0.8) / firstPage.canvasHeight;
-                
+
                 // Kiểm tra xem với scale này, chiều rộng có bị vượt quá không
                 const projectedWidth = firstPage.canvasWidth * scaleToMeetHeightConstraint;
 
@@ -4269,7 +4274,7 @@ const WeddingInvitationEditor = () => {
     }, [pages]);
 
 
-    
+
     useEffect(() => {
         const centralColumn = centralColumnRef.current;
         if (!centralColumn) return;
@@ -4365,11 +4370,11 @@ const WeddingInvitationEditor = () => {
                     setActiveTool('create-new'); // Tự động bật tab tạo mới nếu dữ liệu rỗng
                     // --- KẾT THÚC THÊM DÒNG NÀY ---
                 }
-                
+
                 setHistory({ stack: [contentWithDefaults], index: 0 });
                 setCurrentPageId(contentWithDefaults[0]?.id || null);
                 setSlug(invitationData.slug || '');
-                
+
                 if (invitationData.settings) {
                     const normalizedBanners = (invitationData.settings.bannerImages || []).map(img =>
                         typeof img === 'string' ? { id: img, url: img } : img
@@ -4377,13 +4382,13 @@ const WeddingInvitationEditor = () => {
                     const formattedEventDate = invitationData.settings.eventDate
                         ? new Date(invitationData.settings.eventDate).toISOString().slice(0, 16)
                         : '';
-                    
+
                     setEventSettings(prevState => ({
-                        ...prevState, // Bắt đầu với default
-                        ...invitationData.settings, // Ghi đè bằng dữ liệu đã lưu
-                        bannerImages: normalizedBanners,
-                        eventDate: formattedEventDate,
-                    }));
+                        ...prevState, // Bắt đầu với default
+                        ...invitationData.settings, // Ghi đè bằng dữ liệu đã lưu
+                        bannerImages: normalizedBanners,
+                        eventDate: formattedEventDate,
+                    }));
 
                     // =======================================================
                     // === THÊM ĐOẠN MÃ NÀY VÀO ĐÂY ĐỂ KHỞI TẠO eventBlocks ===
@@ -4401,7 +4406,7 @@ const WeddingInvitationEditor = () => {
                     //         'VIDEO',
                     //     ];
                     // }
-                    
+
                     // =======================================================
                     // === KẾT THÚC PHẦN MÃ CẦN THÊM ===
                     // =======================================================
@@ -4431,12 +4436,12 @@ const WeddingInvitationEditor = () => {
 
     useEffect(() => {
         // NẾU ĐÃ KHỞI TẠO XONG THÌ KHÔNG CHẠY LẠI (Tránh lỗi tạo mới UUID liên tục khi kéo thả)
-        if (isBlocksInitializedRef.current) return; 
+        if (isBlocksInitializedRef.current) return;
         if (!eventSettings || !eventSettings.invitationType) return;
 
         const order = eventSettings.blocksOrder || [];
         let defaultBlocksForType = [];
-        
+
         switch (eventSettings.invitationType) {
             case 'Thiệp cưới':
                 defaultBlocksForType = ['BANNER_CAROUSEL', 'EVENT_DESCRIPTION', 'COUPLE_INFO', 'PARTICIPANTS', 'EVENT_SCHEDULE', 'COUNTDOWN', 'LOVE_STORY', 'GALLERY', 'VIDEO', 'CONTACT_INFO', 'QR_CODES', 'RSVP', 'CUSTOM_HTML'];
@@ -4469,7 +4474,7 @@ const WeddingInvitationEditor = () => {
         }
 
         setEventBlocks(initialBlocks);
-        
+
         // Đồng bộ ngược lại cho Settings nếu là thiệp mới tinh
         if (order.length === 0 && defaultBlocksForType.length > 0) {
             setEventSettings(prev => ({ ...prev, blocksOrder: defaultBlocksForType }));
@@ -4535,7 +4540,7 @@ const WeddingInvitationEditor = () => {
         const pageElement = document.getElementById(`page-container-${pageId}`);
         if (pageElement && canvasWrapperRef.current) {
             canvasWrapperRef.current.scrollTo({
-                top: pageElement.offsetTop, 
+                top: pageElement.offsetTop,
                 behavior: 'smooth',
             });
         }
@@ -4618,7 +4623,7 @@ const WeddingInvitationEditor = () => {
                     bgImg.onerror = resolve;
                 }));
             }
-            
+
             const sortedItems = [...pageToCapture.items].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
 
             for (const item of sortedItems) {
@@ -4632,7 +4637,7 @@ const WeddingInvitationEditor = () => {
                 el.style.height = `${item.height}px`;
                 el.style.transform = `rotate(${item.rotation || 0}deg)`;
                 el.style.opacity = `${item.opacity || 1}`;
-                
+
                 // =================================================================
                 // START OF CHANGE: Updated text rendering logic for 100% accuracy
                 // =================================================================
@@ -4643,7 +4648,7 @@ const WeddingInvitationEditor = () => {
                     el.style.justifyContent = 'center';
                     el.style.padding = '10px 5px';
                     el.style.boxSizing = 'border-box';
-                    
+
                     // Apply all text styles directly to the element.
                     el.style.fontFamily = item.fontFamily || 'Arial';
                     el.style.fontSize = `${item.fontSize || 16}px`;
@@ -4659,9 +4664,9 @@ const WeddingInvitationEditor = () => {
                     el.textContent = item.isGuestName ? '[Tên Khách Mời]' : (item.content || '');
 
                 } else if (item.type === 'image' && item.url) {
-                // =================================================================
-                // END OF CHANGE
-                // =================================================================
+                    // =================================================================
+                    // END OF CHANGE
+                    // =================================================================
                     const img = document.createElement('img');
                     // CHỈNH SỬA
                     if (!item.url.startsWith('blob:') && !item.url.startsWith('data:')) {
@@ -4677,10 +4682,10 @@ const WeddingInvitationEditor = () => {
                         img.onerror = resolve;
                     }));
                 }
-                
+
                 container.appendChild(el);
             }
-            
+
             document.body.appendChild(container);
             await Promise.all(loadingPromises);
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -4693,7 +4698,7 @@ const WeddingInvitationEditor = () => {
 
             try {
                 // 1. Ghi đè window.getComputedStyle
-                window.getComputedStyle = function(el, pseudoElt) {
+                window.getComputedStyle = function (el, pseudoElt) {
                     const style = originalGetComputedStyle(el, pseudoElt);
                     return new Proxy(style, {
                         get(target, prop) {
@@ -4704,7 +4709,7 @@ const WeddingInvitationEditor = () => {
                             }
                             // Nếu phát hiện mã màu html2canvas không hỗ trợ, trả về màu an toàn
                             if (typeof value === 'string' && (value.includes('oklch') || value.includes('oklab') || value.includes('color('))) {
-                                return 'rgba(0, 0, 0, 0)'; 
+                                return 'rgba(0, 0, 0, 0)';
                             }
                             return value;
                         }
@@ -4712,7 +4717,7 @@ const WeddingInvitationEditor = () => {
                 };
 
                 // 2. Ghi đè thêm getPropertyValue để bảo mật 2 lớp
-                CSSStyleDeclaration.prototype.getPropertyValue = function(prop) {
+                CSSStyleDeclaration.prototype.getPropertyValue = function (prop) {
                     const value = originalGetPropertyValue.call(this, prop);
                     if (value && typeof value === 'string' && (value.includes('oklch') || value.includes('oklab') || value.includes('color('))) {
                         return 'rgba(0, 0, 0, 0)';
@@ -4735,7 +4740,7 @@ const WeddingInvitationEditor = () => {
                 // 🌟 QUAN TRỌNG: LUÔN LUÔN khôi phục lại hàm gốc của trình duyệt sau khi render xong 🌟
                 window.getComputedStyle = originalGetComputedStyle;
                 CSSStyleDeclaration.prototype.getPropertyValue = originalGetPropertyValue;
-                
+
                 // Dọn rác
                 if (document.body.contains(container)) {
                     document.body.removeChild(container);
@@ -4759,7 +4764,7 @@ const WeddingInvitationEditor = () => {
             const ctx = finalCanvas.getContext('2d');
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
-            
+
             ctx.imageSmoothingQuality = "high";
 
             const availableWidth = THUMBNAIL_WIDTH - PADDING;
@@ -4776,32 +4781,32 @@ const WeddingInvitationEditor = () => {
                 const page2Canvas = await capturePageAsCanvas(pages[1].id);
                 if (!page2Canvas) throw new Error("Không thể chụp ảnh trang thứ hai.");
 
-                const overlapRatioX = 0.85; 
+                const overlapRatioX = 0.85;
                 const verticalShiftRatio = 0.10;
 
                 // ✨ BẮT ĐẦU SỬA LỖI & TÁI CẤU TRÚC ✨
-                const heightCorrectionFactor = 1.025; 
+                const heightCorrectionFactor = 1.025;
                 const totalW = page1Canvas.width * (1 + overlapRatioX);
                 const totalH = (page1Canvas.height * (1 + verticalShiftRatio)) * heightCorrectionFactor;
-                
+
                 // Di chuyển phép tính scale và định nghĩa các biến lên trước khi sử dụng
                 const scale = Math.min(availableWidth / totalW, availableHeight / totalH);
                 const scaledPageW = page1Canvas.width * scale;
                 const scaledPageH = page1Canvas.height * scale;
-                
+
                 const totalRenderedW = scaledPageW * (1 + overlapRatioX);
                 const totalRenderedH = scaledPageH + (scaledPageH * verticalShiftRatio);
                 // ✨ KẾT THÚC SỬA LỖI & TÁI CẤU TRÚC ✨
-                
+
                 const x_base = (THUMBNAIL_WIDTH - totalRenderedW) / 2;
                 const y_base = (THUMBNAIL_HEIGHT - totalRenderedH) / 2;
-                
+
                 const page1_x = x_base;
                 const page1_y = y_base;
 
                 const page2_x = x_base + (scaledPageW * overlapRatioX);
                 const page2_y = y_base + (scaledPageH * verticalShiftRatio);
-                
+
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
                 ctx.shadowBlur = 8;
                 ctx.shadowOffsetY = 3;
@@ -4857,7 +4862,7 @@ const WeddingInvitationEditor = () => {
                 const blob = await response.blob();
                 return new File([blob], fileName, { type: blob.type || 'image/png' });
             };
-            
+
             // Lặp qua pages để tìm ảnh mới
             const blobUrlToFileMap = new Map();
             for (const page of pages) {
@@ -4874,7 +4879,7 @@ const WeddingInvitationEditor = () => {
                 // Kịch bản 1: Trang này có đối tượng File của riêng nó (thường là trang gốc đã tải ảnh lên)
                 if (page.backgroundImageFile instanceof File) {
                     fileToUpload = page.backgroundImageFile;
-                } 
+                }
                 // Kịch bản 2: Trang này chỉ có blob URL (trang được sao chép), tìm File gốc trong bản đồ
                 else if (page.backgroundImage && page.backgroundImage.startsWith('blob:')) {
                     fileToUpload = blobUrlToFileMap.get(page.backgroundImage);
@@ -4898,7 +4903,7 @@ const WeddingInvitationEditor = () => {
                         imageCounter++;
                     }
                 }
-            }            
+            }
             // Lặp qua settings để tìm ảnh mới
             const settingImageFields = ['groomImageUrl', 'brideImageUrl', 'heroImages.main', 'heroImages.sub1', 'heroImages.sub2'];
             for (const fieldPath of settingImageFields) {
@@ -4910,7 +4915,7 @@ const WeddingInvitationEditor = () => {
                     imageCounter++;
                 }
             }
-            
+
             const settingArrayImageFields = [{ path: 'galleryImages', fieldName: null }, { path: 'events', fieldName: 'imageUrl' }, { path: 'participants', fieldName: 'imageUrl' }, { path: 'loveStory', fieldName: 'imageUrl' }, { path: 'qrCodes', fieldName: 'url' }, { path: 'bannerImages', fieldName: 'file' }];
             for (const { path, fieldName } of settingArrayImageFields) {
                 const items = _.get(settingsClone, path, []);
@@ -4966,7 +4971,7 @@ const WeddingInvitationEditor = () => {
                 }
                 if (path === 'bannerImages') { _.set(settingsClone, path, items.filter(item => item.url)); }
             }
-            
+
             // =======================================================================
             // BƯỚC CŨ 4: XÂY DỰNG FORMDATA CUỐI CÙNG VÀ GỬI ĐI
             // =======================================================================
@@ -4974,10 +4979,10 @@ const WeddingInvitationEditor = () => {
                 throw new Error("Không tìm thấy dữ liệu mẫu gốc để cập nhật.");
             }
 
-             const finalFormData = new FormData();
-            
+            const finalFormData = new FormData();
+
             const cleanPages = pagesClone.map(page => _.omit(page, ['backgroundImageFile', 'items.isEditing']));
-            
+
             const finalSettings = { ...settingsClone, blocksOrder: eventBlocks.map(block => block.type) };
 
             const templateDataPayload = {
@@ -5021,7 +5026,7 @@ const WeddingInvitationEditor = () => {
             const settingsForPreview = _.cloneDeep(eventSettings);
 
             settingsForPreview.blocksOrder = eventBlocks.map(block => block.type);
-            
+
             if (settingsForPreview.groomImageUrl instanceof File) {
                 settingsForPreview.groomImageUrl = URL.createObjectURL(settingsForPreview.groomImageUrl);
             }
@@ -5034,7 +5039,7 @@ const WeddingInvitationEditor = () => {
                 if (Array.isArray(settingsForPreview[field])) {
                     settingsForPreview[field] = settingsForPreview[field].map(item => {
                         if (field === 'galleryImages' && item instanceof File) {
-                             return URL.createObjectURL(item);
+                            return URL.createObjectURL(item);
                         }
                         if (typeof item === 'object' && item !== null) {
                             const newItem = { ...item };
@@ -5044,7 +5049,7 @@ const WeddingInvitationEditor = () => {
                             if (newItem.url && newItem.url instanceof File) {
                                 newItem.url = URL.createObjectURL(newItem.url);
                             }
-                             if (newItem.file && newItem.file instanceof File) {
+                            if (newItem.file && newItem.file instanceof File) {
                                 newItem.url = URL.createObjectURL(newItem.file); // Banner dùng 'file'
                                 delete newItem.file;
                                 delete newItem.preview;
@@ -5118,7 +5123,7 @@ const WeddingInvitationEditor = () => {
     const handleSelectItem = useCallback((id) => {
         if (id !== selectedItemId) {
             setSelectedItemId(id);
-            if(selectedSettingField) setSelectedSettingField(null);
+            if (selectedSettingField) setSelectedSettingField(null);
         }
         const item = currentItems.find(i => i.id === id);
         if (item?.locked) return;
@@ -5148,7 +5153,7 @@ const WeddingInvitationEditor = () => {
                 if (isNew && !itemExists) {
                     newList = [...list, localItemData];
                 } else {
-                     newList = list.map(item => item.id === localItemData.id ? localItemData : item);
+                    newList = list.map(item => item.id === localItemData.id ? localItemData : item);
                 }
                 return { ...prev, [listKey]: newList };
             });
@@ -5157,7 +5162,7 @@ const WeddingInvitationEditor = () => {
     }, [itemToEdit, prevItemToEdit, localItemData, setEventSettings]);
     const handleSelectSettingField = (key) => {
         setSelectedItemId(null);
-        setItemToEdit(null); 
+        setItemToEdit(null);
         setSelectedSettingField(prevKey => (prevKey === key ? null : key));
     };
     const handleSelectBlock = (blockType) => {
@@ -5193,7 +5198,7 @@ const WeddingInvitationEditor = () => {
         // Cập nhật cài đặt sự kiện để cung cấp dữ liệu mặc định cho khối mới
         setEventSettings(prevSettings => {
             const newBlocksOrder = [...(prevSettings.blocksOrder || []), blockType];
-            
+
             const newSettings = {
                 ...prevSettings,
                 blocksOrder: newBlocksOrder
@@ -5252,7 +5257,7 @@ const WeddingInvitationEditor = () => {
                 default:
                     break;
             }
-            
+
             return newSettings;
         });
 
@@ -5280,8 +5285,8 @@ const WeddingInvitationEditor = () => {
         };
         const key = listKeyMap[item.type];
         if (key) {
-            setSelectedSettingField(key); 
-            setItemToEdit(item);        
+            setSelectedSettingField(key);
+            setItemToEdit(item);
         } else {
             console.warn("Unknown item type for editing:", item.type);
         }
@@ -5409,13 +5414,13 @@ const WeddingInvitationEditor = () => {
             return arrayMove(currentPages, oldIndex, newIndex);
         }, true);
     }, [setPages]);
-    
-    useEffect(() => { if (pages.length > 0 && !pages.find(p => p.id === currentPageId)) setCurrentPageId(pages[0]?.id || null); }, [currentPageId, pages]);
-    
 
-    
+    useEffect(() => { if (pages.length > 0 && !pages.find(p => p.id === currentPageId)) setCurrentPageId(pages[0]?.id || null); }, [currentPageId, pages]);
+
+
+
     const handleBackgroundColorChange = (color) => { if (!currentPageId) return; setPages(pages.map(p => p.id === currentPageId ? { ...p, backgroundColor: color } : p), true); };
-    
+
     const handleBackgroundImageChange = (file) => {
         if (!currentPageId || !file) return;
         const imageUrl = URL.createObjectURL(file); // URL tạm thời để hiển thị
@@ -5454,7 +5459,7 @@ const WeddingInvitationEditor = () => {
                 newWidth = newHeight * ratio;
             }
             const newImageItem = { ...defaultItemProps, id: uuidv4(), url, x: pageForAdding.canvasWidth / 2 - newWidth / 2, y: pageForAdding.canvasHeight / 2 - newHeight / 2, width: newWidth, height: newHeight, type: 'image', zIndex: getNextZIndex() };
-            
+
             setPages(currentPages => currentPages.map(page =>
                 page.id === targetPageId ? { ...page, items: [...page.items, newImageItem] } : page
             ), true);
@@ -5486,7 +5491,7 @@ const WeddingInvitationEditor = () => {
 
             // 1. Cập nhật danh sách ảnh ở Sidebar (Giữ nguyên logic cũ)
             setUserUploadedImages(prev => [...newImages, ...prev]);
-            
+
             // 2. === LOGIC MỚI: XỬ LÝ BATCH ADD LÊN CANVAS ===
             if (currentPageId && newImages.length > 0) {
                 const pageForAdding = pages.find(p => p.id === currentPageId);
@@ -5507,7 +5512,7 @@ const WeddingInvitationEditor = () => {
                             }
 
                             // Hiệu ứng xếp chồng (cascade): Mỗi ảnh lệch nhau 20px để không bị đè khít
-                            const offset = index * 20; 
+                            const offset = index * 20;
                             const x = (pageForAdding.canvasWidth / 2) - (newWidth / 2) + offset;
                             const y = (pageForAdding.canvasHeight / 2) - (newHeight / 2) + offset;
 
@@ -5572,7 +5577,7 @@ const WeddingInvitationEditor = () => {
         } finally {
             setIsUploading(false);
         }
-    // NHỚ CẬP NHẬT DEPENDENCY ARRAY ĐỂ REACT HOOK KHÔNG BỊ CŨ
+        // NHỚ CẬP NHẬT DEPENDENCY ARRAY ĐỂ REACT HOOK KHÔNG BỊ CŨ
     }, [currentPageId, pages, setPages]);
     const handleDeleteUserImages = useCallback((imageIdsToDelete) => {
         setUserUploadedImages(prev => prev.filter(img => !imageIdsToDelete.includes(img.id)));
@@ -5589,7 +5594,7 @@ const WeddingInvitationEditor = () => {
         setPages(updater, record);
     }, [currentPageId, setPages]);
     const handleDeleteItem = useCallback((id) => { if (!currentPageId || !id) return; setPages(pages.map(p => p.id === currentPageId ? { ...p, items: p.items.filter(i => i.id !== id) } : p), true); if (selectedItemId === id) setSelectedItemId(null); }, [currentPageId, selectedItemId, pages, setPages]);
-    
+
     const handleBringToFront = useCallback((id) => {
         if (!currentPageId || !id) return;
         setPages(currentPages => currentPages.map(page => {
@@ -5613,17 +5618,17 @@ const WeddingInvitationEditor = () => {
             };
         }), true);
     }, [currentPageId, setPages]);
-    
+
     const handleReorderItems = useCallback((activeId, overId) => {
         setPages(currentPages => currentPages.map(page => {
             if (page.id !== currentPageId) return page;
-            
+
             const reversedItems = [...page.items].sort((a, b) => a.zIndex - b.zIndex).reverse();
             const oldIndex = reversedItems.findIndex(i => i.id === activeId);
             const newIndex = reversedItems.findIndex(i => i.id === overId);
-            
+
             const reorderedReversed = arrayMove(reversedItems, oldIndex, newIndex);
-            
+
             const finalOrderedItems = reorderedReversed.reverse();
             const idToZIndexMap = new Map();
             finalOrderedItems.forEach((item, index) => {
@@ -5638,9 +5643,9 @@ const WeddingInvitationEditor = () => {
             return { ...page, items: newItems };
         }), true);
     }, [currentPageId, setPages]);
-    const handleToggleLayerLock = useCallback((id) => { 
-        const i = currentItems.find(it => it.id === id); 
-        if (i) handleUpdateItem(id, { locked: !i.locked }, true); 
+    const handleToggleLayerLock = useCallback((id) => {
+        const i = currentItems.find(it => it.id === id);
+        if (i) handleUpdateItem(id, { locked: !i.locked }, true);
     }, [currentItems, handleUpdateItem]);
 
     const handleCopy = useCallback(() => { if (!selectedItemId || !currentPage) return; const item = currentPage.items.find(i => i.id === selectedItemId); if (item) setClipboard(item); }, [selectedItemId, currentPage]);
@@ -5653,23 +5658,23 @@ const WeddingInvitationEditor = () => {
             if (meta && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); handleRedo(); }
             if (meta && e.key === 'c') { e.preventDefault(); handleCopy(); }
             if (meta && e.key === 'v') { e.preventDefault(); handlePaste(); }
-            if (meta && e.key.toLowerCase() === 'l') { 
-                e.preventDefault(); 
+            if (meta && e.key.toLowerCase() === 'l') {
+                e.preventDefault();
                 if (selectedItemId) {
                     handleToggleLayerLock(selectedItemId);
                     // (Tuỳ chọn) toast.info("Đã thay đổi trạng thái khóa");
                 }
             }
-            if (e.key === 'Delete' || e.key === 'Backspace') { 
-                e.preventDefault(); 
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.preventDefault();
                 if (selectedItemId) {
                     const itemToDel = currentItems.find(i => i.id === selectedItemId);
                     if (itemToDel && !itemToDel.locked) {
-                        handleDeleteItem(selectedItemId); 
+                        handleDeleteItem(selectedItemId);
                     } else if (itemToDel?.locked) {
                         toast.warn("Không thể xóa đối tượng đang bị khóa!");
                     }
-                } 
+                }
             }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -5732,7 +5737,7 @@ const WeddingInvitationEditor = () => {
     }, [snapLines, currentCanvasWidth, currentCanvasHeight, zoomLevel, currentPage]);
     useEffect(() => { if (canvasWrapperRef.current) canvasWrapperRef.current.style.cursor = isPanning.current ? 'grabbing' : 'grab'; });
     const handleToggleLayerVisibility = (id) => { const i = currentItems.find(it => it.id === id); if (i) handleUpdateItem(id, { visible: !(i.visible ?? true) }, true); };
-    
+
     const handleScaleImageToFit = useCallback((id) => {
         const page = pages.find(p => p.id === currentPageId);
         if (!page || !id) return;
@@ -5742,7 +5747,7 @@ const WeddingInvitationEditor = () => {
 
         const cw = page.canvasWidth;
         const ch = page.canvasHeight;
-        
+
         // CẬP NHẬT MỚI: Reset lại toàn bộ transform data để ảnh fit hoàn hảo
         handleUpdateItem(id, {
             width: cw,
@@ -5765,15 +5770,15 @@ const WeddingInvitationEditor = () => {
         setActiveDragItem(null);
 
         if (!over || !active.data.current || !String(over.id).startsWith('page-drop-area-')) {
-            return; 
+            return;
         }
-        
+
         const itemData = active.data.current;
         const prefix = 'page-drop-area-';
         const targetPageId = String(over.id).substring(prefix.length);
 
         if (itemData.type === 'image') {
-            addImageToCanvas(itemData.url, targetPageId); 
+            addImageToCanvas(itemData.url, targetPageId);
         } else if (itemData.type === 'text') {
             // SỬA DÒNG DƯỚI ĐÂY
             addTextToCanvas(itemData.content, targetPageId, itemData.isGuestName);
@@ -5783,7 +5788,7 @@ const WeddingInvitationEditor = () => {
     const addTextToCanvas = useCallback((content, targetPageId, isGuestName = false) => {
         const pageForAdding = pages.find(p => p.id === targetPageId);
         if (!pageForAdding) return;
-        
+
         setActiveTool('default');
         const defaultWidth = 250;
         const defaultHeight = 50;
@@ -5791,16 +5796,16 @@ const WeddingInvitationEditor = () => {
         const itemX = (pageForAdding.canvasWidth / 2) - (defaultWidth / 2);
         const itemY = (pageForAdding.canvasHeight / 2) - (defaultHeight / 2);
 
-        const newTextItem = { 
-            ...defaultItemProps, 
-            id: uuidv4(), 
-            content, 
-            x: itemX, 
-            y: itemY, 
-            width: defaultWidth, 
-            height: defaultHeight, 
-            fontSize: 24, 
-            type: 'text', 
+        const newTextItem = {
+            ...defaultItemProps,
+            id: uuidv4(),
+            content,
+            x: itemX,
+            y: itemY,
+            width: defaultWidth,
+            height: defaultHeight,
+            fontSize: 24,
+            type: 'text',
             zIndex: getNextZIndex(),
             isCustomWidth: false,
             isGuestName: isGuestName // BỔ SUNG DÒNG NÀY
@@ -5810,7 +5815,7 @@ const WeddingInvitationEditor = () => {
         setSelectedItemId(newTextItem.id);
     }, [pages, getNextZIndex, setPages]);
 
-    
+
 
     const handleSidebarItemClick = useCallback((itemData) => {
         if (!currentPageId) {
@@ -5822,7 +5827,7 @@ const WeddingInvitationEditor = () => {
             addImageToCanvas(itemData.url, currentPageId);
         } else if (itemData.type === 'text' && itemData.content) {
             // SỬA ĐOẠN NÀY ĐỂ NHẬN isGuestName
-            addTextToCanvas(itemData.content, currentPageId, itemData.isGuestName); 
+            addTextToCanvas(itemData.content, currentPageId, itemData.isGuestName);
         }
     }, [currentPageId, currentPage, addImageToCanvas, addTextToCanvas, getNextZIndex, setPages]);
 
@@ -5857,7 +5862,7 @@ const WeddingInvitationEditor = () => {
                         return <EditorComponent
                             key={item.id} item={item} onUpdateItem={handleUpdateItem}
                             isSelected={isItemSelected} onSelectItem={handleSelectItem}
-                            canvasRef={canvasContainerRef} zoomLevel={viewScale} 
+                            canvasRef={canvasContainerRef} zoomLevel={viewScale}
                             snapToGrid={snapToGrid}
                             gridSize={gridSize} allItems={page.items} onSetSnapLines={setSnapLines}
                             snapToObject={snapToObject} />;
@@ -5866,7 +5871,7 @@ const WeddingInvitationEditor = () => {
             </CanvasContainer>
         );
     };
-    
+
     const renderSecondarySidebar = () => {
         if (isScrolledToSettings) {
             if (selectedSettingField && selectedSettingField !== 'invitationType') { // Cập nhật điều kiện
@@ -5915,8 +5920,8 @@ const WeddingInvitationEditor = () => {
                                 const isSelected = currentBlockTypes.has(type);
 
                                 return (
-                                    <ListItemButton 
-                                        key={type} 
+                                    <ListItemButton
+                                        key={type}
                                         onClick={() => {
                                             if (isSelected) {
                                                 // Nếu ĐÃ CHỌN -> Tìm ID của khối đó và Xóa
@@ -5927,8 +5932,8 @@ const WeddingInvitationEditor = () => {
                                                 handleAddBlock(type);
                                             }
                                         }}
-                                        sx={{ 
-                                            alignItems: 'flex-start', 
+                                        sx={{
+                                            alignItems: 'flex-start',
                                             py: 1.5,
                                             pr: 5, // Thêm padding-right để text không bị đè bởi checkbox
                                             borderRadius: 1.5, // Bo góc mượt hơn
@@ -5946,21 +5951,21 @@ const WeddingInvitationEditor = () => {
                                         <ListItemIcon sx={{ mt: 0.5, minWidth: 40, color: isSelected ? 'primary.main' : 'inherit' }}>
                                             {config.icon}
                                         </ListItemIcon>
-                                        <ListItemText 
-                                            primary={config.label} 
+                                        <ListItemText
+                                            primary={config.label}
                                             secondary={config.description}
-                                            primaryTypographyProps={{ 
-                                                variant: 'subtitle2', 
+                                            primaryTypographyProps={{
+                                                variant: 'subtitle2',
                                                 fontWeight: 600,
                                                 color: isSelected ? 'primary.main' : 'text.primary' // Đổi màu chữ nếu chọn
                                             }}
-                                            secondaryTypographyProps={{ 
-                                                variant: 'caption', 
+                                            secondaryTypographyProps={{
+                                                variant: 'caption',
                                                 color: 'text.secondary',
-                                                sx: { display: 'block', mt: 0.5, lineHeight: 1.4 } 
+                                                sx: { display: 'block', mt: 0.5, lineHeight: 1.4 }
                                             }}
                                         />
-                                        
+
                                         {/* Checkbox ở góc trên bên phải */}
                                         <Checkbox
                                             checked={isSelected}
@@ -5975,7 +5980,7 @@ const WeddingInvitationEditor = () => {
                                                     color: 'primary.main',
                                                 }
                                             }}
-                                            // Không cần onchange vì sự kiện click đã được bắt bởi ListItemButton bọc ngoài
+                                        // Không cần onchange vì sự kiện click đã được bắt bởi ListItemButton bọc ngoài
                                         />
                                     </ListItemButton>
                                 );
@@ -6066,12 +6071,12 @@ const WeddingInvitationEditor = () => {
                     `).join('\n')}
                 </style>
             </Helmet>
-            <DndContext 
-                onDragStart={handleDragStart} 
+            <DndContext
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 sensors={sensors}
             >
-                <Box sx={{ display: 'flex', height: '100vh', flexDirection: 'column', bgcolor: 'background.default' }}>                            
+                <Box sx={{ display: 'flex', height: '100vh', flexDirection: 'column', bgcolor: 'background.default' }}>
                     <Paper square elevation={0} sx={{ display: 'flex', alignItems: 'center', p: '8px 16px', flexShrink: 0, height: 64, zIndex: (theme) => theme.zIndex.drawer + 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
                         <Tooltip title="Quay về trang quản lý">
                             <IconButton onClick={handleNavigateBack} sx={{ mr: 1.5 }}>
@@ -6081,13 +6086,13 @@ const WeddingInvitationEditor = () => {
                         <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', mr: 2 }}>
                             {templateId ? 'Chỉnh sửa mẫu' : 'Tạo mẫu mới'}
                         </Typography>
-                        <TextField 
-                            label="Tên thiệp" 
-                            variant="outlined" 
-                            size="small" 
-                            value={slug} 
-                            onChange={(e) => setSlug(e.target.value)} 
-                            sx={{ ml: 'auto', mr: 2, minWidth: '300px' }} 
+                        <TextField
+                            label="Tên thiệp"
+                            variant="outlined"
+                            size="small"
+                            value={slug}
+                            onChange={(e) => setSlug(e.target.value)}
+                            sx={{ ml: 'auto', mr: 2, minWidth: '300px' }}
                         />
 
                         {/* Logic hiển thị nút mới */}
@@ -6164,9 +6169,9 @@ const WeddingInvitationEditor = () => {
                                                 <ListItemText primary="Tạo mới" primaryTypographyProps={{ variant: 'caption' }} />
                                             </ListItemButton>
                                             <DraggableSidebarItem data={{ id: 'sidebar-guest-name-item', type: 'text', content: '[Tên Khách Mời]', isGuestName: true }}>
-                                                <ListItemButton 
-                                                    sx={{ flexDirection: 'column', px: 1, mb: 1, cursor: 'grab' }} 
-                                                    component="div" 
+                                                <ListItemButton
+                                                    sx={{ flexDirection: 'column', px: 1, mb: 1, cursor: 'grab' }}
+                                                    component="div"
                                                     onClick={() => handleSidebarItemClick({ type: 'text', content: '[Tên Khách Mời]', isGuestName: true })}
                                                 >
                                                     <ContactsIcon />
@@ -6174,15 +6179,15 @@ const WeddingInvitationEditor = () => {
                                                 </ListItemButton>
                                             </DraggableSidebarItem>
                                             <DraggableSidebarItem data={{ id: 'sidebar-text-item', type: 'text', content: 'Nội dung mới' }}>
-                                                <ListItemButton 
-                                                    onClick={() => handleSidebarItemClick({ type: 'text', content: 'Nội dung mới' })} 
-                                                    sx={{ flexDirection: 'column', px: 1, mb: 1, cursor: 'grab' }} 
+                                                <ListItemButton
+                                                    onClick={() => handleSidebarItemClick({ type: 'text', content: 'Nội dung mới' })}
+                                                    sx={{ flexDirection: 'column', px: 1, mb: 1, cursor: 'grab' }}
                                                     component="div"
                                                 >
                                                     <TextFieldsIcon />
                                                     <ListItemText primary="Văn bản" primaryTypographyProps={{ variant: 'caption' }} />
                                                 </ListItemButton>
-                                            </DraggableSidebarItem>                                          
+                                            </DraggableSidebarItem>
                                             <ListItemButton selected={activeTool === 'user-images'} onClick={() => handleSetActiveTool('user-images')} sx={{ flexDirection: 'column', px: 1, mb: 1 }}><CloudUploadIcon /><ListItemText primary="Tải lên" primaryTypographyProps={{ variant: 'caption' }} /></ListItemButton>
                                             <ListItemButton selected={activeTool === 'icons'} onClick={() => handleSetActiveTool('icons')} sx={{ flexDirection: 'column', px: 1, mb: 1 }}><ImageIcon /><ListItemText primary="Icon" primaryTypographyProps={{ variant: 'caption' }} /></ListItemButton>
                                             <ListItemButton selected={activeTool === 'components'} onClick={() => handleSetActiveTool('components')} sx={{ flexDirection: 'column', px: 1, mb: 1 }}><CategoryIcon /><ListItemText primary="Thành phần" primaryTypographyProps={{ variant: 'caption' }} /></ListItemButton>
@@ -6220,33 +6225,33 @@ const WeddingInvitationEditor = () => {
                                         <Tooltip title="Dán (Ctrl+V)"><IconButton size="small" onClick={handlePaste} disabled={!clipboard}><ContentPasteIcon /></IconButton></Tooltip>
                                     </Box>
                                     {activeItem && (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        {/* Nút Khóa / Mở khóa luôn hiển thị */}
-        <Tooltip title={activeItem.locked ? "Mở khóa (Ctrl+L)" : "Khóa vị trí & kích thước (Ctrl+L)"}>
-            <IconButton 
-                size="small" 
-                onClick={() => handleToggleLayerLock(selectedItemId)} 
-                color={activeItem.locked ? "primary" : "default"}
-            >
-                {activeItem.locked ? <LockIcon /> : <LockOpenIcon />}
-            </IconButton>
-        </Tooltip>
-        
-        <Divider orientation="vertical" flexItem />
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                            {/* Nút Khóa / Mở khóa luôn hiển thị */}
+                                            <Tooltip title={activeItem.locked ? "Mở khóa (Ctrl+L)" : "Khóa vị trí & kích thước (Ctrl+L)"}>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleToggleLayerLock(selectedItemId)}
+                                                    color={activeItem.locked ? "primary" : "default"}
+                                                >
+                                                    {activeItem.locked ? <LockIcon /> : <LockOpenIcon />}
+                                                </IconButton>
+                                            </Tooltip>
 
-        {/* Các nút sửa đổi chỉ hiện khi KHÔNG khóa */}
-        {!activeItem.locked && (
-            <>
-                <Tooltip title="Độ mờ"><OpacityIcon fontSize="small" sx={{ color: 'text.secondary' }} /></Tooltip>
-                <Slider value={activeItem.opacity} onChange={(_e, val) => handleUpdateItem(selectedItemId, { opacity: val }, false)} onChangeCommitted={() => handleUpdateItem(selectedItemId, {}, true)} min={0} max={1} step={0.01} sx={{ width: 100 }} size="small" />
-                <Divider orientation="vertical" flexItem />
-                <Tooltip title="Đưa lên trên"><IconButton size="small" onClick={() => handleBringToFront(selectedItemId)}><FlipToFrontIcon /></IconButton></Tooltip>
-                <Tooltip title="Đưa xuống dưới"><IconButton size="small" onClick={() => handleSendToBack(selectedItemId)}><FlipToBackIcon /></IconButton></Tooltip>
-                <Tooltip title="Xóa đối tượng"><IconButton size="small" color="error" onClick={() => handleDeleteItem(selectedItemId)}><DeleteIcon /></IconButton></Tooltip>
-            </>
-        )}
-    </Box>
-)}
+                                            <Divider orientation="vertical" flexItem />
+
+                                            {/* Các nút sửa đổi chỉ hiện khi KHÔNG khóa */}
+                                            {!activeItem.locked && (
+                                                <>
+                                                    <Tooltip title="Độ mờ"><OpacityIcon fontSize="small" sx={{ color: 'text.secondary' }} /></Tooltip>
+                                                    <Slider value={activeItem.opacity} onChange={(_e, val) => handleUpdateItem(selectedItemId, { opacity: val }, false)} onChangeCommitted={() => handleUpdateItem(selectedItemId, {}, true)} min={0} max={1} step={0.01} sx={{ width: 100 }} size="small" />
+                                                    <Divider orientation="vertical" flexItem />
+                                                    <Tooltip title="Đưa lên trên"><IconButton size="small" onClick={() => handleBringToFront(selectedItemId)}><FlipToFrontIcon /></IconButton></Tooltip>
+                                                    <Tooltip title="Đưa xuống dưới"><IconButton size="small" onClick={() => handleSendToBack(selectedItemId)}><FlipToBackIcon /></IconButton></Tooltip>
+                                                    <Tooltip title="Xóa đối tượng"><IconButton size="small" color="error" onClick={() => handleDeleteItem(selectedItemId)}><DeleteIcon /></IconButton></Tooltip>
+                                                </>
+                                            )}
+                                        </Box>
+                                    )}
                                 </Paper>
                                 <Box sx={{ flexGrow: 1, position: 'relative' }}>
                                     <CanvasWrapper

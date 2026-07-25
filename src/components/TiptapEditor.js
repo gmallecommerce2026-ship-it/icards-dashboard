@@ -11,8 +11,9 @@ import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import './CustomEditor.css';
 import api from '../services/api';
-import ProductPickerModal from './seller/ProductPickerModal';
 import { ShoppingBag } from 'lucide-react';
+import { GmallProductExtension } from './GmallProductExtension';
+import GmallProductModal from './GmallProductModal';
 import { toast } from 'react-toastify';
 import {
     Bold, Italic, Strikethrough, Underline as UnderlineIcon, Pilcrow,
@@ -242,7 +243,7 @@ const TableGridSelector = ({ editor }) => {
     );
 };
 
-const MenuBar = ({ editor, onHtmlToggle, isHtmlMode }) => {
+const MenuBar = ({ editor, onHtmlToggle, isHtmlMode, onOpenProductModal }) => {
     const fileInputRef = useRef(null);
 
     const handleFileSelect = async (event) => {
@@ -364,6 +365,7 @@ const TiptapEditor = ({ data, onChange }) => {
             TableRow,
             TableHeader,
             TableCell,
+            GmallProductExtension
         ],
         content: data,
         onUpdate: ({ editor }) => {
@@ -393,33 +395,25 @@ const TiptapEditor = ({ data, onChange }) => {
             }
         },
     });
-    const handleInsertProducts = (selectedProducts) => {
-        if (!editor || !selectedProducts || selectedProducts.length === 0) return;
+    const handleInsertProduct = (product) => {
+        if (!editor) return;
 
-        // ProductPickerModal cho phép chọn nhiều, nên ta lặp qua mảng để chèn
-        selectedProducts.forEach(product => {
-            // Lấy ảnh đầu tiên, nếu không có thì dùng placeholder
-            const primaryImage = (product.images && product.images.length > 0)
-                ? product.images[0]
-                : 'https://via.placeholder.com/150';
+        const primaryImage = product.images?.[0] || '';
 
-            editor.chain().focus().insertContent({
-                type: 'gmallProduct',
-                attrs: {
-                    id: product.id,
-                    name: product.name,
-                    price: product.price,
-                    image: primaryImage,
-                    // Giả định product có slug, nếu không dùng id
-                    link: `https://g-mall.vn/product/${product.slug || product.id}`
-                }
-            }).run();
+        editor.chain().focus().insertContent({
+            type: 'gmallProduct',
+            attrs: {
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                image: primaryImage,
+                link: `https://g-mall.vn/product/${product.slug || product.id}`
+            }
+        }).run();
 
-            // Chèn thêm một dòng trống (paragraph) dưới mỗi sản phẩm cho dễ gõ text tiếp
-            editor.chain().focus().insertContent('<p></p>').run();
-        });
-
-        setIsProductModalOpen(false); // Đóng modal
+        // Chèn một dòng trống bên dưới để dễ gõ text tiếp
+        editor.chain().focus().insertContent('<p></p>').run();
+        setIsProductModalOpen(false);
     };
     // Đồng bộ nội dung từ props vào editor
     useEffect(() => {
@@ -452,11 +446,11 @@ const TiptapEditor = ({ data, onChange }) => {
     return (
         <div className="tiptap-wrapper">
             {editor && (
-                <MenuBar
-                    editor={editor}
-                    onHtmlToggle={toggleHtmlMode}
-                    isHtmlMode={isHtmlMode}
-                    onOpenProductModal={() => setIsProductModalOpen(true)}
+                <MenuBar 
+                    editor={editor} 
+                    onHtmlToggle={toggleHtmlMode} 
+                    isHtmlMode={isHtmlMode} 
+                    onOpenProductModal={() => setIsProductModalOpen(true)} // Truyền hàm mở Modal
                 />
             )}
             {editor && <ImageActionMenu
@@ -481,12 +475,12 @@ const TiptapEditor = ({ data, onChange }) => {
                 <EditorContent editor={editor} />
             )}
 
-            <ProductPickerModal
-                isOpen={isProductModalOpen}
-                onClose={() => setIsProductModalOpen(false)}
-                initialSelectedIds={[]} // Truyền mảng rỗng vì mỗi lần chèn là một lượt mới
-                onConfirm={handleInsertProducts}
-            />
+            {isProductModalOpen && (
+                <GmallProductModal 
+                    onClose={() => setIsProductModalOpen(false)} 
+                    onSelect={handleInsertProduct} 
+                />
+            )}
         </div>
     );
 };

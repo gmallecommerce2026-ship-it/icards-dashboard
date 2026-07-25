@@ -89,7 +89,90 @@ const STANDARD_SIZES = {
     },
 };
 // --- KẾT THÚC LOGIC KÍCH THƯỚC ---
+// --- BẮT ĐẦU HELPER BANNER SLOT (KHÔNG ĐỔI ĐỊNH DẠNG LƯU TRỮ) ---
+const HOME_SLOT_META = {
+    hero: { label: 'Banner Hero (đầu trang)', hint: 'Banner lớn, nổi bật nhất, ngay đầu trang chủ.', fixedName: 'Banner chính trang chủ' },
+    footerTop: { label: 'Banner trên (trước Footer)', hint: 'Hiển thị phía trên, ngay trước khối Footer.', fixedName: 'Banner phụ 1 trang chủ' },
+    footerBottom: { label: 'Banner dưới (cuối Footer)', hint: 'Hiển thị cuối cùng, sát trước Footer.', fixedName: 'Banner phụ 2 trang chủ' },
+};
 
+const OTHER_PAGES = [
+    { key: 'shop', label: 'Cửa hàng', fixedName: 'Banner trang Cửa hàng' },
+    { key: 'professional', label: 'Chuyên nghiệp', fixedName: 'Banner trang Chuyên nghiệp' },
+    { key: 'invitations', label: 'Thiệp mời', fixedName: 'Banner trang Thiệp mời' },
+    { key: 'greetings', label: 'Thiệp chúc mừng', fixedName: 'Banner trang Thiệp chúc mừng' },
+    { key: 'thanks', label: 'Thiệp cảm ơn', fixedName: 'Banner trang Thiệp cảm ơn' },
+    { key: 'others', label: 'Thiệp khác', fixedName: 'Banner trang Thiệp khác' },
+];
+
+// Thứ tự CỐ ĐỊNH khi xuất ra mảng để lưu - phải khớp với index dùng cho file upload
+const SLOT_ORDER = ['home.hero', 'home.footerTop', 'home.footerBottom', ...OTHER_PAGES.map(p => p.key)];
+
+const EMPTY_BANNER = (displayPage, name) => ({
+    id: uuidv4(),
+    name,
+    displayPage,
+    isEnabled: true,
+    mediaType: 'image',
+    imageUrl: '',
+    videoUrl: '',
+    title: '',
+    subtitle: '',
+    htmlContent: '',
+    link: '',
+    buttonText: '', // THÊM MỚI
+    buttonLink: '',
+});
+
+// Mảng banner (định dạng cũ, có displayPage) -> object slot để render UI
+const bannersArrayToSlots = (bannersInput) => {
+    const list = Array.isArray(bannersInput) ? bannersInput : Object.values(bannersInput || {});
+
+    const homeList = list.filter(b => b && (b.displayPage === 'home' || b.displayPage === 'all'));
+    let heroIdx = homeList.findIndex(b => b.name?.toLowerCase().includes('chính'));
+    if (heroIdx === -1 && homeList.length > 0) heroIdx = 0;
+
+    const hero = heroIdx >= 0 ? homeList[heroIdx] : null;
+    const rest = homeList.filter((_, i) => i !== heroIdx);
+
+    const findByPage = (page) => list.find(b => b && b.displayPage === page) || null;
+
+    // Tự động map các page dựa trên OTHER_PAGES
+    const slots = {
+        home: {
+            hero: hero || EMPTY_BANNER('home', HOME_SLOT_META.hero.fixedName),
+            footerTop: rest[0] || EMPTY_BANNER('home', HOME_SLOT_META.footerTop.fixedName),
+            footerBottom: rest[1] || EMPTY_BANNER('home', HOME_SLOT_META.footerBottom.fixedName),
+        }
+    };
+
+    OTHER_PAGES.forEach(pageMeta => {
+        slots[pageMeta.key] = findByPage(pageMeta.key) || EMPTY_BANNER(pageMeta.key, pageMeta.fixedName);
+    });
+
+    return slots;
+};
+
+// Object slot -> mảng banner (định dạng cũ) để lưu, LUÔN đúng thứ tự SLOT_ORDER
+const slotsToBannersArray = (slots) => {
+    const fixName = (banner, fixedName) => ({ ...banner, name: fixedName });
+
+    const arr = [
+        { ...fixName(slots.home.hero, HOME_SLOT_META.hero.fixedName), displayPage: 'home' },
+        { ...fixName(slots.home.footerTop, HOME_SLOT_META.footerTop.fixedName), displayPage: 'home' },
+        { ...fixName(slots.home.footerBottom, HOME_SLOT_META.footerBottom.fixedName), displayPage: 'home' }
+    ];
+
+    // Tự động gộp mảng động để gửi lên Backend
+    OTHER_PAGES.forEach(pageMeta => {
+        if (slots[pageMeta.key]) {
+            arr.push({ ...fixName(slots[pageMeta.key], pageMeta.fixedName), displayPage: pageMeta.key });
+        }
+    });
+
+    return arr;
+};
+// --- KẾT THÚC HELPER BANNER SLOT ---
 const BulkTemplateModal = ({ isOpen, onClose, onSave }) => {
     const [file, setFile] = useState(null);
     const [fileName, setFileName] = useState('');
@@ -1061,7 +1144,35 @@ const HomepageBlockManager = () => {
             setAllTemplates(res.data || []);
         } catch (error) { console.error("Lỗi tải template"); }
     };
+    const generateSlug = (text) => {
+        if (!text) return '';
+        return text.toString().toLowerCase()
+            .normalize('NFD') // Tách dấu ra khỏi ký tự
+            .replace(/[\u0300-\u036f]/g, '') // Xóa dấu
+            .replace(/đ/g, 'd').replace(/Đ/g, 'd') // Thay thế chữ đ
+            .replace(/\s+/g, '-') // Thay khoảng trắng bằng dấu gạch ngang
+            .replace(/[^\w\-]+/g, '') // Xóa các ký tự đặc biệt
+            .replace(/\-\-+/g, '-') // Xóa các dấu gạch ngang liên tiếp
+            .replace(/^-+/, '') // Xóa gạch ngang ở đầu
+            .replace(/-+$/, ''); // Xóa gạch ngang ở cuối
+    };
 
+    // Hàm xử lý khi người dùng nhập Tên khối
+    const handleTitleChange = (e) => {
+        const newTitle = e.target.value;
+
+        // Nếu đang tạo mới khối (không phải edit), tự động điền slug
+        if (!editingBlock) {
+            setFormData({
+                ...formData,
+                title: newTitle,
+                slug: generateSlug(newTitle)
+            });
+        } else {
+            // Nếu đang edit thì chỉ đổi tên, giữ nguyên slug (tránh làm hỏng link cũ, trừ khi admin tự gõ sửa slug)
+            setFormData({ ...formData, title: newTitle });
+        }
+    };
     const openModal = (block = null) => {
         if (block) {
             setEditingBlock(block);
@@ -1178,7 +1289,13 @@ const HomepageBlockManager = () => {
                             <div>
                                 <div className="form-group">
                                     <label className="form-label">Tên Khối (VD: Top Thiệp Cưới)</label>
-                                    <input type="text" className="form-control" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} required />
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.title}
+                                        onChange={handleTitleChange}
+                                        required
+                                    />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Đường dẫn (Slug)</label>
@@ -2067,123 +2184,95 @@ const TemplateModal = ({ isOpen, onClose, onSave, template }) => {
 // ================================================================================
 
 
-const SortableBannerItem = ({ banner, index, onUpdate, onRemove, onFileChange }) => {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: banner.id });
-    const [isExpanded, setIsExpanded] = useState(false);
+const BannerSlotEditor = ({ banner, label, hint, fieldPrefix, onUpdate, onFileChange }) => {
+    const [isExpanded, setIsExpanded] = useState(true);
+    const b = banner;
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    };
+    const update = (field, value) => onUpdate({ ...b, [field]: value });
 
-    const handleBannerChange = (field, value) => {
-        const newBanner = { ...banner, [field]: value };
-        onUpdate(index, newBanner);
-    };
-
-    const handleMediaTypeChange = (newType) => {
-        let updatedBanner = { ...banner, mediaType: newType };
-
-        if (newType === 'html') {
-            if (!banner.htmlContent || banner.htmlContent.trim() === '' || banner.htmlContent === '<p></p>') {
-                updatedBanner.htmlContent = generateHtmlLayout();
-            }
-        }
-        onUpdate(index, updatedBanner);
-    };
-
-    // Đã chỉnh sửa: Xóa bỏ border-radius để banner tràn viền, tăng min-height
-    const generateHtmlLayout = () => {
-        const hasVideoUrl = banner.videoUrl && banner.videoUrl.trim() !== '';
+    const generateHtmlLayout = (bannerData) => {
+        const hasVideoUrl = bannerData.videoUrl && bannerData.videoUrl.trim() !== '';
         const mediaTag = hasVideoUrl
-            ? `<video src="${banner.videoUrl}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>`
-            : `<img src="${banner.imageUrl || 'https://placehold.co/1200x400/eaecf0/98a2b3?text=Banner+Nền'}" alt="${banner.title || ''}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />`;
+            ? `<video src="${bannerData.videoUrl}" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover; display: block;"></video>`
+            : `<img src="${bannerData.imageUrl || 'https://placehold.co/1200x400/eaecf0/98a2b3?text=Banner+Nền'}" alt="${bannerData.title || ''}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />`;
 
-        // Đã thêm CSS phá vỡ container (left: 50%, margin-left: -50vw, width: 100vw) để ép tràn viền
+        // THÊM: Đoạn HTML của nút bấm
+        const buttonHtml = (bannerData.buttonText && bannerData.buttonLink)
+            ? `<a href="${bannerData.buttonLink}" style="display: inline-block; padding: 12px 28px; margin-top: 10px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; transition: background-color 0.3s; pointer-events: auto;">${bannerData.buttonText}</a>`
+            : '';
+
         return `<div style="position: relative; width: 100vw; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; min-height: 450px; background-color: #f8fafc; overflow: hidden; font-family: sans-serif;">
   <div style="position: absolute; inset: 0; z-index: 1; pointer-events: none;">
     ${mediaTag}
   </div>
-
   <div style="position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%); pointer-events: none;"></div>
-
-  <div style="position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; justify-content: center; padding: 40px 5%; max-width: 1200px; margin: 0 auto;">
+  <div style="position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 40px 5%; max-width: 1200px; margin: 0 auto; pointer-events: none;">
     <h2 style="margin: 0 0 16px 0; font-size: 36px; color: #ffffff; font-weight: 700; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">
-      ${banner.title || 'Tiêu Đề Banner'}
+      ${bannerData.title || 'Tiêu Đề Banner'}
     </h2>
-    <p style="margin: 0 0 32px 0; font-size: 18px; color: rgba(255, 255, 255, 0.95); line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.4);">
-      ${banner.subtitle || 'Tiêu đề phụ hoặc mô tả ngắn gọn.'}
+    <p style="margin: 0 0 16px 0; font-size: 18px; color: rgba(255, 255, 255, 0.95); line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.4);">
+      ${bannerData.subtitle || 'Tiêu đề phụ hoặc mô tả ngắn gọn.'}
     </p>
-    
-    </div>
+    ${buttonHtml}
+  </div>
 </div>`;
     };
 
+    const handleMediaTypeChange = (newType) => {
+        let updated = { ...b, mediaType: newType };
+        if (newType === 'html' && (!b.htmlContent || b.htmlContent.trim() === '' || b.htmlContent === '<p></p>')) {
+            updated.htmlContent = generateHtmlLayout(b);
+        }
+        onUpdate(updated);
+    };
+
     const handleForceSyncHtml = () => {
-        if (window.confirm("Hành động này sẽ xóa code HTML hiện tại và gen lại toàn bộ từ đầu bằng Ảnh và Tiêu đề cơ bản. Bạn có chắc chắn?")) {
-            handleBannerChange('htmlContent', generateHtmlLayout());
+        if (window.confirm('Hành động này sẽ xóa code HTML hiện tại và gen lại toàn bộ từ đầu bằng Ảnh và Tiêu đề cơ bản. Bạn có chắc chắn?')) {
+            update('htmlContent', generateHtmlLayout(b));
         }
     };
 
     const handleBannerFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            const isVideo = banner.mediaType === 'video';
-            const fieldName = isVideo ? `banners__${index}__videoUrl` : `banners__${index}__imageUrl`;
+            const isVideo = b.mediaType === 'video';
+            const field = isVideo ? 'videoUrl' : 'imageUrl';
+            const fieldName = `${fieldPrefix}__${field}`;
             onFileChange(fieldName, file);
-
-            const newUrl = URL.createObjectURL(file);
-            const newBanner = { ...banner };
-            if (isVideo) {
-                newBanner.videoUrl = newUrl;
-            } else {
-                newBanner.imageUrl = newUrl;
-            }
-            onUpdate(index, newBanner);
+            onUpdate({ ...b, [field]: URL.createObjectURL(file) });
         }
     };
 
-    const mediaType = banner.mediaType || 'image';
+    const mediaType = b.mediaType || 'image';
 
     return (
-        <div ref={setNodeRef} style={style} className="banner-editor-item">
+        <div className="banner-editor-item">
             <div className="banner-editor-header">
-                <div className="drag-handle" {...attributes} {...listeners}>
-                    <GripVertical size={20} />
-                </div>
                 <strong className="banner-title" onClick={() => setIsExpanded(!isExpanded)}>
-                    {banner.name || `Banner ${index + 1}`} ({mediaType === 'video' ? 'Video' : mediaType === 'html' ? 'Nâng cao (HTML)' : 'Ảnh'})
+                    {label} ({mediaType === 'video' ? 'Video' : mediaType === 'html' ? 'Nâng cao (HTML)' : 'Ảnh'})
                 </strong>
                 <div className="banner-header-actions">
                     <div className="publish-toggle">
                         <div className="toggle-wrapper">
-                            <span>{banner.isEnabled ? 'Đang hiển thị' : 'Đã tắt'}</span>
-                            <button type="button" className={`btn-toggle ${banner.isEnabled ? 'active' : ''}`} onClick={() => handleBannerChange('isEnabled', !banner.isEnabled)}>
-                                {banner.isEnabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                            <span>{b.isEnabled ? 'Đang hiển thị' : 'Đã tắt'}</span>
+                            <button type="button" className={`btn-toggle ${b.isEnabled ? 'active' : ''}`} onClick={() => update('isEnabled', !b.isEnabled)}>
+                                {b.isEnabled ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
                             </button>
                         </div>
                     </div>
-                    <button onClick={() => onRemove(index)} className="btn-danger-icon" title="Xóa Banner"><Trash2 size={16} /></button>
                     <button onClick={() => setIsExpanded(!isExpanded)} className="expand-button">
                         {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
                 </div>
             </div>
 
+            {hint && <p className="settings-item__description" style={{ margin: '4px 0 12px 0' }}>{hint}</p>}
+
             {isExpanded && (
                 <div className="banner-editor-content">
                     <div className="form-group">
-                        <label className="form-label">Tên Banner (để quản lý)</label>
-                        <input type="text" className="form-control" value={banner.name} onChange={(e) => handleBannerChange('name', e.target.value)} placeholder="Vd: Banner chính trang chủ" />
-                    </div>
-
-                    <div className="form-group">
                         <label className="form-label">Chế độ hiển thị</label>
-                        <Select
-                            value={mediaType}
-                            onChange={handleMediaTypeChange}
-                            style={{ width: '100%' }}
-                        >
+                        <Select value={mediaType} onChange={handleMediaTypeChange} style={{ width: '100%' }}>
                             <Option value="image"><ImageIcon size={16} style={{ marginRight: 8 }} /> Ảnh cơ bản</Option>
                             <Option value="video"><VideoIcon size={16} style={{ marginRight: 8 }} /> Video MP4</Option>
                             <Option value="html"><Layout size={16} style={{ marginRight: 8 }} /> Tùy chỉnh nâng cao (Sinh code HTML)</Option>
@@ -2194,32 +2283,33 @@ const SortableBannerItem = ({ banner, index, onUpdate, onRemove, onFileChange })
                         <>
                             <div className="form-group">
                                 <label className="form-label">{mediaType === 'video' ? 'Video Banner (.mp4)' : 'Ảnh Banner'}</label>
-
-                                {/* ĐÃ FIX: Thêm position: relative, minHeight và borderRadius */}
                                 <div className="image-upload-preview single" style={{ position: 'relative', padding: 0, overflow: 'hidden', border: '1px solid #e2e8f0', minHeight: '220px', backgroundColor: '#f8fafc', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-
                                     {mediaType === 'video' ? (
-                                        banner.videoUrl && <video src={banner.videoUrl} autoPlay loop muted style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }} />
+                                        b.videoUrl && <video src={b.videoUrl} autoPlay loop muted style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }} />
                                     ) : (
-                                        // ĐÃ FIX: Ghi đè padding và border của class logo-preview để ảnh full viền
-                                        banner.imageUrl && <img src={banner.imageUrl} alt="Banner Preview" className="logo-preview" style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block', padding: 0, border: 'none' }} />
+                                        b.imageUrl && <img src={b.imageUrl} alt="Banner Preview" style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block', padding: 0, border: 'none' }} />
                                     )}
-
-                                    {/* ĐÃ FIX: Thêm zIndex, căn chỉnh lại màu sắc và cursor pointer để nút nhạy hơn */}
                                     <label className="btn" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'rgba(255,255,255,0.95)', color: '#1e293b', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer', zIndex: 10, padding: '8px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'flex', gap: '8px', alignItems: 'center', fontWeight: '500' }}>
-                                        <Upload size={16} /> {(mediaType === 'video' ? banner.videoUrl : banner.imageUrl) ? 'Thay đổi' : 'Tải lên'}
+                                        <Upload size={16} /> {(mediaType === 'video' ? b.videoUrl : b.imageUrl) ? 'Thay đổi' : 'Tải lên'}
                                         <input type="file" accept={mediaType === 'video' ? 'video/mp4' : 'image/*'} hidden onChange={handleBannerFileChange} />
                                     </label>
                                 </div>
                             </div>
-
                             <div className="form-group">
                                 <label className="form-label">Tiêu đề (hiển thị trên banner)</label>
-                                <input type="text" className="form-control" value={banner.title || ''} onChange={(e) => handleBannerChange('title', e.target.value)} />
+                                <input type="text" className="form-control" value={b.title || ''} onChange={(e) => update('title', e.target.value)} />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Tiêu đề phụ (hiển thị trên banner)</label>
-                                <input type="text" className="form-control" value={banner.subtitle || ''} onChange={(e) => handleBannerChange('subtitle', e.target.value)} />
+                                <input type="text" className="form-control" value={b.subtitle || ''} onChange={(e) => update('subtitle', e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Text nút bấm</label>
+                                <input type="text" className="form-control" value={b.buttonText || ''} onChange={(e) => update('buttonText', e.target.value)} placeholder="VD: Khám phá ngay, Mua ngay..." />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Đường dẫn nút bấm (Link)</label>
+                                <input type="text" className="form-control" value={b.buttonLink || ''} onChange={(e) => update('buttonLink', e.target.value)} placeholder="VD: /shop hoặc https://..." />
                             </div>
                         </>
                     )}
@@ -2227,42 +2317,14 @@ const SortableBannerItem = ({ banner, index, onUpdate, onRemove, onFileChange })
                     {mediaType === 'html' && (
                         <div className="form-group">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
-                                <label className="form-label" style={{ color: '#1e3a8a', fontWeight: 600, margin: 0 }}>
-                                    Nội dung HTML
-                                </label>
+                                <label className="form-label" style={{ color: '#1e3a8a', fontWeight: 600, margin: 0 }}>Nội dung HTML</label>
                                 <button type="button" onClick={handleForceSyncHtml} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#eff6ff', color: '#1e40af', borderColor: '#bfdbfe' }}>
                                     <LayoutTemplate size={14} /> Ghi đè HTML bằng cấu hình Cơ bản
                                 </button>
                             </div>
-
-                            <CustomEditor
-                                data={banner.htmlContent || ""}
-                                onChange={(data) => handleBannerChange('htmlContent', data)}
-                            />
+                            <CustomEditor data={b.htmlContent || ''} onChange={(data) => update('htmlContent', data)} />
                         </div>
                     )}
-
-                    <div className="form-group">
-                        <label className="form-label">Đường dẫn khi click (Link)</label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            value={banner.link || ''}
-                            onChange={(e) => handleBannerChange('link', e.target.value)}
-                            placeholder="VD: /shop/san-pham-moi hoặc https://..."
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label className="form-label">Hiển thị ở trang</label>
-                        <select className="form-control" value={banner.displayPage || 'all'} onChange={(e) => handleBannerChange('displayPage', e.target.value)}>
-                            <option value="all">Tất cả các trang</option>
-                            <option value="home">Trang chủ</option>
-                            <option value="shop">Cửa hàng</option>
-                            <option value="professional">Chuyên nghiệp</option>
-                            <option value="invitations">Mẫu thiệp</option>
-                        </select>
-                    </div>
                 </div>
             )}
         </div>
@@ -2271,75 +2333,65 @@ const SortableBannerItem = ({ banner, index, onUpdate, onRemove, onFileChange })
 
 
 const BannerEditor = ({ banners, onUpdate, onFileChange }) => {
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
+    const [activePage, setActivePage] = useState('home');
 
-    const handleDragEnd = (event) => {
-        const { active, over } = event;
-        if (over && active.id !== over.id) {
-            const oldIndex = banners.findIndex((b) => b.id === active.id);
-            const newIndex = banners.findIndex((b) => b.id === over.id);
-            onUpdate('banners', arrayMove(banners, oldIndex, newIndex));
-        }
+    // banners = mảng cũ (định dạng gốc) -> chỉ convert để RENDER, không đổi state gốc
+    const slots = useMemo(() => bannersArrayToSlots(banners), [banners]);
+
+    // Khi 1 slot thay đổi: build lại toàn bộ slots -> convert ngược về mảng -> gửi lên parent
+    const updateSlot = (slotPath, updatedBanner) => {
+        const newSlots = _.cloneDeep(slots);
+        _.set(newSlots, slotPath, updatedBanner);
+        onUpdate('banners', slotsToBannersArray(newSlots));
     };
 
-    const handleUpdateBanner = (index, newBannerData) => {
-        const newBanners = [...banners];
-        newBanners[index] = newBannerData;
-        onUpdate('banners', newBanners);
-    };
-
-    const addBanner = () => {
-        const newBanner = {
-            id: uuidv4(),
-            name: 'Banner Mới',
-            displayPage: 'home',
-            isEnabled: true,
-            mediaType: 'image', // Mặc định là ảnh
-            imageUrl: '',
-            videoUrl: '',
-            title: '',
-            subtitle: '',
-            htmlContent: '',
-            link: ''
-        };
-        onUpdate('banners', [...(banners || []), newBanner]);
-    };
-
-    const removeBanner = (index) => {
-        if (window.confirm('Bạn có chắc muốn xóa banner này không?')) {
-            const newBanners = banners.filter((_, i) => i !== index);
-            onUpdate('banners', newBanners);
-        }
-    };
+    const ALL_TABS = [{ key: 'home', label: 'Trang chủ' }, ...OTHER_PAGES];
 
     return (
         <div className="card settings-card">
             <h3 className="card__title"><Columns size={24} /> Quản lý Banner</h3>
             <p className="settings-description">
-                Thêm, sửa, xóa và sắp xếp lại các banner. Banner có thể là ảnh (với tiêu đề) hoặc nội dung HTML tùy chỉnh.
+                Trang chủ có 3 vị trí cố định: Hero, Banner trên & Banner dưới (trước Footer).
+                Mỗi trang còn lại (Cửa hàng, Chuyên nghiệp, Mẫu thiệp) chỉ có đúng 1 banner.
             </p>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={(banners || []).map(b => b.id)} strategy={verticalListSortingStrategy}>
-                    <div className="all-banners-container">
-                        {(banners || []).map((banner, index) => (
-                            <SortableBannerItem
-                                key={banner.id}
-                                banner={banner}
-                                index={index}
-                                onUpdate={(idx, data) => handleUpdateBanner(idx, data)}
-                                onRemove={() => removeBanner(index)}
-                                onFileChange={onFileChange}
-                            />
-                        ))}
-                    </div>
-                </SortableContext>
-            </DndContext>
-            <button onClick={addBanner} className="btn btn-secondary" style={{ marginTop: '1.5rem' }}>
-                <PlusCircle size={18} /> Thêm Banner mới
-            </button>
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px' }}>
+                {ALL_TABS.map(p => (
+                    <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => setActivePage(p.key)}
+                        className={`btn ${activePage === p.key ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '6px 16px' }}
+                    >
+                        {p.label}
+                    </button>
+                ))}
+            </div>
+
+            <div className="all-banners-container">
+                {activePage === 'home' ? (
+                    ['hero', 'footerTop', 'footerBottom'].map(slotKey => (
+                        <BannerSlotEditor
+                            key={slotKey}
+                            banner={slots.home[slotKey]}
+                            label={HOME_SLOT_META[slotKey].label}
+                            hint={HOME_SLOT_META[slotKey].hint}
+                            fieldPrefix={`banners__${SLOT_ORDER.indexOf(`home.${slotKey}`)}`}
+                            onUpdate={(updated) => updateSlot(`home.${slotKey}`, updated)}
+                            onFileChange={onFileChange}
+                        />
+                    ))
+                ) : (
+                    <BannerSlotEditor
+                        banner={slots[activePage]}
+                        label={`Banner trang ${OTHER_PAGES.find(p => p.key === activePage)?.label}`}
+                        fieldPrefix={`banners__${SLOT_ORDER.indexOf(activePage)}`}
+                        onUpdate={(updated) => updateSlot(activePage, updated)}
+                        onFileChange={onFileChange}
+                    />
+                )}
+            </div>
         </div>
     );
 };
@@ -2383,6 +2435,14 @@ const SettingsPage = () => {
                             displayPage: value.displayPage || 'all',
                             htmlContent: value.htmlContent || '',
                             imageUrl: value.imageUrl || '',
+
+                            // THÊM CÁC DÒNG NÀY ĐỂ GIỮ NGUYÊN DỮ LIỆU:
+                            videoUrl: value.videoUrl || '',
+                            title: value.title || '',
+                            subtitle: value.subtitle || '',
+                            buttonText: value.buttonText || '',
+                            buttonLink: value.buttonLink || '',
+                            link: value.link || '',
                         };
                     });
                 }
@@ -2551,6 +2611,9 @@ const SettingsPage = () => {
             <AdminHeader title="Tuỳ chỉnh Giao diện" />
             <div className="page-header-actions" style={{ position: 'absolute', top: '1.25rem', right: '2rem' }}>
                 <button onClick={() => setIsReviewModalOpen(true)} className="btn btn-secondary"><Eye size={20} /> Xem trước</button>
+                <button onClick={handleSaveChanges} className="btn btn-primary" disabled={isLoading}>
+                    <Save size={20} /> {isLoading ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}
+                </button>
             </div>
             <div className="settings-container">
                 {/* ... (Giữ nguyên JSX cho General Info & Branding) ... */}

@@ -169,14 +169,20 @@ const TopicManagement = ({ onTopicsUpdate }) => {
             setFlatTopics(reorderedTopics);
 
             try {
-                // Map lại để lấy id và giữ nguyên parentId cũ
+                // Tạo một mảng (Array) chứa thứ tự mới
                 const topicOrderPayload = reorderedTopics.map(t => ({
-                    id: t._id,
-                    parentId: t.parentId
+                    _id: t._id,
+                    parentId: t.parentId || null
                 }));
-                await topicService.updateTopicOrder({ topics: topicOrderPayload });
+
+                // ❌ CODE LỖI BỌC 2 LẦN: 
+                // await topicService.updateTopicOrder({ topics: topicOrderPayload });
+
+                // ✅ CODE ĐÚNG: CHỈ TRUYỀN MẢNG VÀO
+                await topicService.updateTopicOrder(topicOrderPayload);
+
                 toast.success('Thứ tự chủ đề đã được cập nhật!');
-                fetchTopics(); // Fetch lại để Backend tính lại cây
+                fetchTopics();
             } catch (error) {
                 toast.error('Lỗi khi cập nhật thứ tự.');
                 fetchTopics();

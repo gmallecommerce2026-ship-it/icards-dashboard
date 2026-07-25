@@ -3,10 +3,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import pageCategoryService from '../../services/pageCategory.service';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
-import { 
-    Button, TextField, Table, TableBody, TableCell, TableHead, TableRow, 
-    Paper, IconButton, TableContainer, Typography, Box, FormControl, 
-    InputLabel, Select, MenuItem 
+import {
+    Button, TextField, Table, TableBody, TableCell, TableHead, TableRow,
+    Paper, IconButton, TableContainer, Typography, Box, FormControl,
+    InputLabel, Select, MenuItem
 } from '@mui/material';
 import { Edit, Delete, DragIndicator, Sync } from '@mui/icons-material';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -98,15 +98,15 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
         try {
             const response = await pageCategoryService.getAllCategories();
             const responseData = response?.data?.data || response?.data || response;
-            
+
             // LƯU Ý: Giả định Backend đã trả về cấu trúc cây (có mảng children).
             // Nếu BE trả về mảng phẳng, bạn cần viết thêm 1 hàm buildTree() ở đây.
             const fetchedTree = Array.isArray(responseData) ? responseData : [];
             const flattened = flattenCategories(fetchedTree);
-            
+
             setRawTreeCategories(fetchedTree);
             setFlatCategories(flattened);
-            if(onCategoriesUpdate) onCategoriesUpdate(fetchedTree);
+            if (onCategoriesUpdate) onCategoriesUpdate(fetchedTree);
         } catch (error) {
             console.error(error);
             toast.error("Lỗi khi tải danh mục!");
@@ -130,11 +130,11 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
                 finalSlug = generateUuidSlug(currentCategory.name);
             }
 
-            const payload = { 
-                ...currentCategory, 
+            const payload = {
+                ...currentCategory,
                 slug: finalSlug,
                 // Chuyển string rỗng thành null để BE xử lý thành Cấp 1
-                parent: currentCategory.parent === '' ? null : currentCategory.parent 
+                parent: currentCategory.parent === '' ? null : currentCategory.parent
             };
 
             if (editingId) {
@@ -156,11 +156,11 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
 
     const handleEdit = (category) => {
         setEditingId(getItemId(category));
-        setCurrentCategory({ 
-            name: category.name, 
+        setCurrentCategory({
+            name: category.name,
             slug: category.slug,
             // Xử lý khi parent được populate là object hoặc string ID
-            parent: category.parent ? (category.parent._id || category.parent) : '' 
+            parent: category.parent ? (category.parent._id || category.parent) : ''
         });
     };
 
@@ -203,21 +203,27 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
         if (over && active.id !== over.id) {
             const oldIndex = flatCategories.findIndex((c) => getItemId(c) === active.id);
             const newIndex = flatCategories.findIndex((c) => getItemId(c) === over.id);
-            
+
             const reorderedCategories = arrayMove(flatCategories, oldIndex, newIndex);
             setFlatCategories(reorderedCategories);
 
             try {
-                const categoryOrderPayload = reorderedCategories.map(cat => ({ 
-                    id: getItemId(cat),
-                    parent: cat.parent // Truyền thêm parent để đảm bảo không bị mất cấu trúc khi sắp xếp
+                const categoryOrderPayload = reorderedCategories.map(cat => ({
+                    _id: getItemId(cat),
+                    parent: cat.parent ? (cat.parent._id || cat.parent) : null
                 }));
-                await pageCategoryService.updateCategoryOrder({ categories: categoryOrderPayload });
+
+                // ❌ XÓA DÒNG BỊ LỖI (Bọc mảng 2 lần):
+                // await pageCategoryService.updateCategoryOrder({ categories: categoryOrderPayload });
+
+                // ✅ SỬA THÀNH DÒNG NÀY (Chỉ truyền mảng thẳng vào service):
+                await pageCategoryService.updateCategoryOrder(categoryOrderPayload);
+
                 toast.success('Thứ tự danh mục đã được cập nhật!');
-                fetchCategories(); // Fetch lại để Backend tính lại cây mới
+                fetchCategories();
             } catch (error) {
                 toast.error('Lỗi khi cập nhật thứ tự.');
-                fetchCategories(); 
+                fetchCategories();
             }
         }
     };
@@ -242,23 +248,23 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
             <Paper sx={{ p: 2, mb: 3, backgroundColor: '#f8fafc' }} elevation={0}>
                 <form onSubmit={handleSubmit}>
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2, mb: 2 }}>
-                        <TextField 
-                            label="Tên danh mục" 
-                            name="name" 
-                            value={currentCategory.name} 
-                            onChange={handleInputChange} 
-                            required 
-                            variant="outlined" 
-                            size="small" 
+                        <TextField
+                            label="Tên danh mục"
+                            name="name"
+                            value={currentCategory.name}
+                            onChange={handleInputChange}
+                            required
+                            variant="outlined"
+                            size="small"
                         />
-                        <TextField 
-                            label="Đường dẫn (slug)" 
-                            name="slug" 
-                            value={currentCategory.slug} 
-                            onChange={handleInputChange} 
-                            helperText="Để trống hệ thống sẽ tự động tạo từ tên" 
-                            variant="outlined" 
-                            size="small" 
+                        <TextField
+                            label="Đường dẫn (slug)"
+                            name="slug"
+                            value={currentCategory.slug}
+                            onChange={handleInputChange}
+                            helperText="Để trống hệ thống sẽ tự động tạo từ tên"
+                            variant="outlined"
+                            size="small"
                         />
                         <FormControl size="small" variant="outlined">
                             <InputLabel id="parent-category-label">Danh mục cha</InputLabel>
@@ -290,7 +296,7 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
                     </Box>
                 </form>
             </Paper>
-            
+
             <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, border: '1px solid #e2e8f0' }}>
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <Table size="small">

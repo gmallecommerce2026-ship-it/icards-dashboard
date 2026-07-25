@@ -17,8 +17,8 @@ const deleteTopic = (id) => {
     return api.delete(`/admin/topics/${id}`);
 };
 
-const updateTopicOrder = (topics) => {
-    return api.put('/admin/topics/update-order', { topics });
+const updateTopicOrder = (topicsArray) => {
+    return api.put('/admin/topics/update-order', { topics: topicsArray });
 };
 
 const topicService = {
