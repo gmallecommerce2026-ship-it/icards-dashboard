@@ -2,10 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Edit2, Trash2, Search, Filter, Eye,
   CheckCircle, XCircle, FileText, Globe, AlertTriangle,
-  Layout, Layers, Hash // Đã thêm icon cho Tab Menu mới
+  Layout, Layers, Hash
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+// BƯỚC 1: Thêm import từ Material-UI
+import { Pagination, Stack } from '@mui/material'; 
+
 import api from '../../services/api';
 import './PageManagementPage.css';
 
@@ -56,7 +59,6 @@ const PageManagementPage = () => {
       }
   };
 
-  // Helper: Cập nhật lại danh mục khi thao tác bên Tab quản lý danh mục
   const handleCategoriesUpdate = useCallback((updatedCategories) => {
     setCategories(updatedCategories);
   }, []);
@@ -97,7 +99,12 @@ const PageManagementPage = () => {
     }
   };
 
-  // --- LOGIC XÓA (Giữ nguyên từ code của bạn) ---
+  // --- BƯỚC 2: Thêm hàm xử lý khi click chuyển trang ---
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
+  };
+
+  // --- LOGIC XÓA ---
   const openDeleteModal = (id) => {
     setDeleteModal({ isOpen: true, id: id, isDeleting: false });
   };
@@ -122,7 +129,7 @@ const PageManagementPage = () => {
     }
   };
 
-  // Helper: Toggle Status (Giữ nguyên)
+  // Helper: Toggle Status
   const handleToggleStatus = async (page) => {
     try {
       const newStatus = !page.isPublished;
@@ -136,7 +143,7 @@ const PageManagementPage = () => {
     }
   };
 
-  // Helper: Get Thumbnail (Giữ nguyên)
+  // Helper: Get Thumbnail
   const getThumbnail = (content) => {
       if (Array.isArray(content)) {
           const imgBlock = content.find(b => b.type === 'image');
@@ -160,7 +167,6 @@ const PageManagementPage = () => {
             <p className="pmp-subtitle">Hệ thống quản lý nội dung, danh mục và chủ đề tập trung.</p>
         </div>
         
-        {/* Chỉ hiện nút tạo mới khi ở tab Content */}
         {currentView === 'content' && (
             <Link to="/dashboard/pages/create" className="pmp-btn-primary">
             <Plus size={18} /> Tạo bài viết mới
@@ -168,7 +174,7 @@ const PageManagementPage = () => {
         )}
       </div>
 
-      {/* --- MAIN NAVIGATION TABS (MỚI THÊM) --- */}
+      {/* --- MAIN NAVIGATION TABS --- */}
       <div className="pmp-main-nav">
         <button 
             className={`pmp-main-nav-item ${currentView === 'content' ? 'active' : ''}`}
@@ -190,7 +196,7 @@ const PageManagementPage = () => {
         </button>
       </div>
 
-      {/* --- PHẦN 1: CONTENT VIEW (Mã cũ của bạn nằm trong block này) --- */}
+      {/* --- PHẦN 1: CONTENT VIEW --- */}
       {currentView === 'content' && (
           <div className="fade-in">
               {/* Tabs Control */}
@@ -342,45 +348,42 @@ const PageManagementPage = () => {
                 </table>
               </div>
               
-              {/* Pagination */}
+              {/* --- BƯỚC 3: Cập nhật giao diện phân trang (MUI Pagination) --- */}
               <div className="pmp-footer">
                   <span className="pmp-results-count">Hiển thị {pages.length} / {totalResults} kết quả</span>
-                  <div className="pmp-pagination">
-                      <button 
-                        disabled={currentPage === 1} 
-                        onClick={() => setCurrentPage(p => p - 1)}
-                        className="pmp-pg-btn"
-                      >
-                        Trước
-                      </button>
-                      <span className="pmp-pg-info">Trang {currentPage} / {totalPages}</span>
-                      <button 
-                        disabled={currentPage === totalPages || totalPages === 0} 
-                        onClick={() => setCurrentPage(p => p + 1)}
-                        className="pmp-pg-btn"
-                      >
-                        Sau
-                      </button>
-                  </div>
+                  
+                  {totalPages > 1 && (
+                      <Stack spacing={2} className="pmp-pagination">
+                          <Pagination 
+                              count={totalPages} 
+                              page={currentPage} 
+                              onChange={handlePageChange} 
+                              color="primary" 
+                              shape="rounded"
+                              showFirstButton 
+                              showLastButton 
+                          />
+                      </Stack>
+                  )}
               </div>
           </div>
       )}
 
-      {/* --- PHẦN 2: CATEGORY VIEW (Mới) --- */}
+      {/* --- PHẦN 2: CATEGORY VIEW --- */}
       {currentView === 'categories' && (
           <div className="fade-in">
               <PageCategoryManagement onCategoriesUpdate={handleCategoriesUpdate} />
           </div>
       )}
 
-      {/* --- PHẦN 3: TOPIC VIEW (Mới) --- */}
+      {/* --- PHẦN 3: TOPIC VIEW --- */}
       {currentView === 'topics' && (
           <div className="fade-in">
               <TopicManagement />
           </div>
       )}
 
-      {/* --- CUSTOM DELETE MODAL (Dùng chung) --- */}
+      {/* --- CUSTOM DELETE MODAL --- */}
       {deleteModal.isOpen && (
         <div className="custom-modal-overlay">
           <div className="custom-modal-content">

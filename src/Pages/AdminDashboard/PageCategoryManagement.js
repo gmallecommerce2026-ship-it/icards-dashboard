@@ -8,9 +8,12 @@ import {
     Paper, IconButton, TableContainer, Typography, Box, FormControl,
     InputLabel, Select, MenuItem
 } from '@mui/material';
-import { Edit, Delete, DragIndicator, Sync } from '@mui/icons-material';
+import { 
+    Edit, Delete, DragIndicator, Sync, 
+    KeyboardArrowRight, KeyboardArrowDown 
+} from '@mui/icons-material';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 // =====================================
@@ -19,15 +22,28 @@ import { CSS } from '@dnd-kit/utilities';
 const getItemId = (item) => item._id || item.id;
 
 // =====================================
-// HELPER: Chuyển Tree thành mảng phẳng để render Table & Dropdown
-// (Phòng trường hợp Backend chưa trả về cây, bạn có thể tự viết hàm buildTree bọc ngoài)
+// HELPER: Chuyển Tree thành mảng phẳng có trạng thái Expand/Collapse
 // =====================================
-const flattenCategories = (categories, depth = 0) => {
+const flattenCategories = (categories, collapsedIds, depth = 0, isParentVisible = true) => {
     let flatList = [];
     categories.forEach(category => {
-        flatList.push({ ...category, depth });
-        if (category.children && category.children.length > 0) {
-            flatList = [...flatList, ...flattenCategories(category.children, depth + 1)];
+        const id = getItemId(category);
+        const hasChildren = category.children && category.children.length > 0;
+        const isCollapsed = collapsedIds.has(id);
+        const isVisible = isParentVisible;
+
+        flatList.push({
+            ...category,
+            depth,
+            hasChildren,
+            isExpanded: !isCollapsed,
+            isVisible
+        });
+
+        if (hasChildren) {
+            // Danh mục con chỉ hiển thị nếu cha của nó đang hiển thị VÀ không bị thu gọn
+            const childrenVisible = isVisible && !isCollapsed;
+            flatList = [...flatList, ...flattenCategories(category.children, collapsedIds, depth + 1, childrenVisible)];
         }
     });
     return flatList;
@@ -36,7 +52,7 @@ const flattenCategories = (categories, depth = 0) => {
 // =====================================
 // COMPONENT RENDER DÒNG KÉO THẢ
 // =====================================
-const SortableCategoryRow = ({ category, onEdit, onDelete }) => {
+const SortableCategoryRow = ({ category, onEdit, onDelete, onToggleCollapse }) => {
     const id = getItemId(category);
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
@@ -55,9 +71,24 @@ const SortableCategoryRow = ({ category, onEdit, onDelete }) => {
             <TableCell sx={{ cursor: 'grab', width: '50px' }} {...listeners}>
                 <DragIndicator color={isDragging ? "primary" : "action"} />
             </TableCell>
-            {/* Hiển thị phân cấp bằng cách thụt lề */}
-            <TableCell sx={{ paddingLeft: `${16 + category.depth * 30}px`, fontWeight: category.depth === 0 ? 'bold' : 'normal' }}>
-                {category.depth > 0 && '— '} {category.name}
+            <TableCell>
+                <Box sx={{ paddingLeft: `${category.depth * 30}px`, display: 'flex', alignItems: 'center', fontWeight: category.depth === 0 ? 'bold' : 'normal' }}>
+                    {/* Nút Thu gọn / Mở rộng */}
+                    {category.hasChildren ? (
+                        <IconButton 
+                            size="small" 
+                            onClick={(e) => { e.stopPropagation(); onToggleCollapse(id); }} 
+                            sx={{ p: 0.5, mr: 0.5 }}
+                        >
+                            {category.isExpanded ? <KeyboardArrowDown fontSize="small" /> : <KeyboardArrowRight fontSize="small" />}
+                        </IconButton>
+                    ) : (
+                        <Box component="span" sx={{ width: '28px', mr: 0.5, display: 'inline-block', textAlign: 'center', color: 'text.secondary' }}>
+                            {category.depth > 0 ? '—' : ''}
+                        </Box>
+                    )}
+                    {category.name}
+                </Box>
             </TableCell>
             <TableCell sx={{ color: 'text.secondary' }}>/{category.slug}</TableCell>
             <TableCell align="right">
@@ -85,6 +116,7 @@ const generateUuidSlug = (name) => {
 const PageCategoryManagement = ({ onCategoriesUpdate }) => {
     const [rawTreeCategories, setRawTreeCategories] = useState([]);
     const [flatCategories, setFlatCategories] = useState([]);
+    const [collapsedIds, setCollapsedIds] = useState(new Set()); // STATE MỚI: Lưu ID các danh mục bị thu gọn
     const [currentCategory, setCurrentCategory] = useState({ name: '', slug: '', parent: '' });
     const [editingId, setEditingId] = useState(null);
     const [isSeeding, setIsSeeding] = useState(false);
@@ -98,14 +130,9 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
         try {
             const response = await pageCategoryService.getAllCategories();
             const responseData = response?.data?.data || response?.data || response;
-
-            // LƯU Ý: Giả định Backend đã trả về cấu trúc cây (có mảng children).
-            // Nếu BE trả về mảng phẳng, bạn cần viết thêm 1 hàm buildTree() ở đây.
             const fetchedTree = Array.isArray(responseData) ? responseData : [];
-            const flattened = flattenCategories(fetchedTree);
-
+            
             setRawTreeCategories(fetchedTree);
-            setFlatCategories(flattened);
             if (onCategoriesUpdate) onCategoriesUpdate(fetchedTree);
         } catch (error) {
             console.error(error);
@@ -116,6 +143,24 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
     useEffect(() => {
         fetchCategories();
     }, [fetchCategories]);
+
+    // Cập nhật mảng phẳng mỗi khi Dữ liệu gốc hoặc Trạng thái Thu gọn thay đổi
+    useEffect(() => {
+        if (rawTreeCategories.length > 0) {
+            setFlatCategories(flattenCategories(rawTreeCategories, collapsedIds));
+        } else {
+            setFlatCategories([]);
+        }
+    }, [rawTreeCategories, collapsedIds]);
+
+    const toggleCollapse = (id) => {
+        setCollapsedIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) newSet.delete(id);
+            else newSet.add(id);
+            return newSet;
+        });
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -133,7 +178,6 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
             const payload = {
                 ...currentCategory,
                 slug: finalSlug,
-                // Chuyển string rỗng thành null để BE xử lý thành Cấp 1
                 parent: currentCategory.parent === '' ? null : currentCategory.parent
             };
 
@@ -159,7 +203,6 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
         setCurrentCategory({
             name: category.name,
             slug: category.slug,
-            // Xử lý khi parent được populate là object hoặc string ID
             parent: category.parent ? (category.parent._id || category.parent) : ''
         });
     };
@@ -180,12 +223,10 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
         if (window.confirm('Bạn có muốn clone/đồng bộ dữ liệu danh mục ngay bây giờ?')) {
             setIsSeeding(true);
             try {
-                // TODO: Hãy tạo route tương ứng ở Backend: router.post('/seed', categoryController.seedCategories)
                 const res = await api.post('/admin/page-categories/seed');
                 toast.success(res.data?.message || "Đồng bộ thành công!");
                 fetchCategories();
             } catch (error) {
-                console.error("Lỗi seed:", error);
                 toast.error(error.response?.data?.message || "Lỗi khi đồng bộ dữ liệu!");
             } finally {
                 setIsSeeding(false);
@@ -201,32 +242,66 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
     const handleDragEnd = async (event) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            const oldIndex = flatCategories.findIndex((c) => getItemId(c) === active.id);
-            const newIndex = flatCategories.findIndex((c) => getItemId(c) === over.id);
+            // 1. Chỉ lấy những item ĐANG HIỂN THỊ để tính toán vị trí kéo thả trực quan
+            const visibleCategories = flatCategories.filter(c => c.isVisible);
+            const oldVisibleIndex = visibleCategories.findIndex((c) => getItemId(c) === active.id);
+            const newVisibleIndex = visibleCategories.findIndex((c) => getItemId(c) === over.id);
 
-            const reorderedCategories = arrayMove(flatCategories, oldIndex, newIndex);
-            setFlatCategories(reorderedCategories);
+            // 2. Tìm khối dữ liệu thực tế (Cha + TẤT CẢ các con đang ẩn/hiện) trong mảng phẳng tổng
+            const activeIndexFlat = flatCategories.findIndex((c) => getItemId(c) === active.id);
+            const activeItem = flatCategories[activeIndexFlat];
 
+            let descendantCount = 0;
+            for (let i = activeIndexFlat + 1; i < flatCategories.length; i++) {
+                if (flatCategories[i].depth > activeItem.depth) descendantCount++;
+                else break;
+            }
+
+            // Tách khối đang được kéo ra khỏi mảng
+            const blockToMove = flatCategories.slice(activeIndexFlat, activeIndexFlat + 1 + descendantCount);
+            let remainingFlat = flatCategories.filter((_, idx) => idx < activeIndexFlat || idx > activeIndexFlat + descendantCount);
+
+            // 3. Tìm vị trí cần chèn vào dựa trên item bị ghi đè (over)
+            let insertIndexFlat = remainingFlat.findIndex(c => getItemId(c) === over.id);
+
+            // Nếu kéo xuống dưới, cần chèn vào SAU khối của item bị ghi đè
+            if (newVisibleIndex > oldVisibleIndex) {
+                const overItem = remainingFlat[insertIndexFlat];
+                let overDescendantCount = 0;
+                for (let i = insertIndexFlat + 1; i < remainingFlat.length; i++) {
+                    if (remainingFlat[i].depth > overItem.depth) overDescendantCount++;
+                    else break;
+                }
+                insertIndexFlat += overDescendantCount + 1;
+            }
+
+            // 4. Lắp ráp lại mảng
+            const newFlatCategories = [
+                ...remainingFlat.slice(0, insertIndexFlat),
+                ...blockToMove,
+                ...remainingFlat.slice(insertIndexFlat)
+            ];
+
+            setFlatCategories(newFlatCategories);
+
+            // 5. Cập nhật lên Server
             try {
-                const categoryOrderPayload = reorderedCategories.map(cat => ({
+                const categoryOrderPayload = newFlatCategories.map(cat => ({
                     _id: getItemId(cat),
                     parent: cat.parent ? (cat.parent._id || cat.parent) : null
                 }));
 
-                // ❌ XÓA DÒNG BỊ LỖI (Bọc mảng 2 lần):
-                // await pageCategoryService.updateCategoryOrder({ categories: categoryOrderPayload });
-
-                // ✅ SỬA THÀNH DÒNG NÀY (Chỉ truyền mảng thẳng vào service):
                 await pageCategoryService.updateCategoryOrder(categoryOrderPayload);
-
                 toast.success('Thứ tự danh mục đã được cập nhật!');
-                fetchCategories();
             } catch (error) {
                 toast.error('Lỗi khi cập nhật thứ tự.');
-                fetchCategories();
+                fetchCategories(); // Rollback nếu lỗi
             }
         }
     };
+
+    // Lọc ra các item thực sự được hiển thị trên màn hình
+    const visibleCategories = flatCategories.filter(c => c.isVisible);
 
     return (
         <Paper sx={{ p: 3, mt: 2, borderRadius: 2, boxShadow: 3 }}>
@@ -308,21 +383,22 @@ const PageCategoryManagement = ({ onCategoriesUpdate }) => {
                                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>Hành động</TableCell>
                             </TableRow>
                         </TableHead>
-                        <SortableContext items={flatCategories.map(c => getItemId(c))} strategy={verticalListSortingStrategy}>
+                        <SortableContext items={visibleCategories.map(c => getItemId(c))} strategy={verticalListSortingStrategy}>
                             <TableBody>
-                                {flatCategories.length === 0 ? (
+                                {visibleCategories.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={4} align="center" sx={{ py: 3, color: 'text.secondary' }}>
                                             Chưa có danh mục nào.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    flatCategories.map((cat) => (
+                                    visibleCategories.map((cat) => (
                                         <SortableCategoryRow
                                             key={getItemId(cat)}
                                             category={cat}
                                             onEdit={handleEdit}
                                             onDelete={handleDelete}
+                                            onToggleCollapse={toggleCollapse}
                                         />
                                     ))
                                 )}
